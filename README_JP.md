@@ -1,3 +1,5 @@
+[日本語](README_JP.md)
+
 ## このデータパックについて
 A derivative work of “Private_Dimension” by Chuzume.<br>
 
