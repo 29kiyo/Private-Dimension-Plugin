@@ -8,7 +8,7 @@ A private dimension plugin for Paper 26.1.2+
 
 This plugin is a derivative work of **Private_Dimension** created by Chuzume.
 
-PrivateDimension is a Paper plugin reimplementation of the original data pack. All copyrights and other rights related to the original concept and assets belong to Chuzume.
+PrivateDimension is a Paper/Spigot plugin reimplementation of the original data pack. All copyrights and other rights related to the original concept and assets belong to Chuzume.
 
 Neither the developer nor the distributor of this plugin shall be held responsible for any issues, damages, or losses resulting from its installation or use.
 
