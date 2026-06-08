@@ -1,0 +1,118 @@
+name: Build PrivateDimension Plugin
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'リリースバージョン（例: v1.1.0）先頭にvをつけてください'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn clean package -B --no-transfer-progress
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      github.event_name == 'workflow_dispatch'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn clean package -B --no-transfer-progress
+
+      - name: Determine and validate version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW="${{ github.event.inputs.version }}"
+          else
+            RAW="${{ github.ref_name }}"
+          fi
+
+          # 先頭に v がなければ付ける
+          if [[ "$RAW" != v* ]]; then
+            RAW="v${RAW}"
+          fi
+
+          # v1.2.3 形式のバリデーション（数字とドットのみ）
+          if ! echo "$RAW" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "❌ バージョン形式が不正です: $RAW"
+            echo "   正しい形式: v1.0.0"
+            exit 1
+          fi
+
+          echo "value=$RAW" >> $GITHUB_OUTPUT
+          echo "bare=${RAW#v}" >> $GITHUB_OUTPUT
+          echo "✅ バージョン: $RAW"
+
+      - name: Rename jar with version
+        run: |
+          JAR=$(ls target/PrivateDimension-*.jar | head -1)
+          mv "$JAR" "target/PrivateDimension-${{ steps.version.outputs.bare }}.jar"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.value }}
+          name: "PrivateDimension ${{ steps.version.outputs.value }}"
+          body: |
+            ## PrivateDimension ${{ steps.version.outputs.value }}
+
+            ### 必要環境
+            - Paper / Spigot 1.21.5〜1.21.11 / 26.1.1〜26.1.2
+            - Java 21+（Paper 26.1.x は Java 25 必須）
+            - Geyser（統合版対応、任意）
+
+            ### インストール
+            1. `PrivateDimension-*.jar` を `plugins/` フォルダに入れる
+            2. サーバーを再起動する
+
+            ### 使い方
+            - `Dimension in a Bottle` をクラフトしてスロットに持つ
+            - 右クリックでプライベート次元へ移動
+            - 次元内で再び使うと元の世界へ帰還
+            - スニーク+使用で周囲の友好的エンティティも連れていける
+
+            ### コマンド
+            - `/pd give [player]` - アイテム付与
+            - `/pd info` - プロット情報確認
+            - `/pd reload` - 設定リロード
+          files: target/PrivateDimension-*.jar
+          draft: false
+          prerelease: false
