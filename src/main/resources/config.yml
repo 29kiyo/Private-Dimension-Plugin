@@ -1,0 +1,32 @@
+# PrivateDimension Configuration
+
+# 次元ワールドの名前
+world-name: "private_dimension"
+
+# プロットサイズ (48x48)
+plot-size: 48
+
+# プロットの間隔 (Z軸方向)
+plot-spacing: 128
+
+# プロット床のY座標
+plot-floor-y: 64
+
+# スニーク時に引き連れる最大エンティティ数
+pull-entity-limit: 10
+
+# 引き連れる範囲 (ブロック)
+pull-entity-radius: 3.0
+
+# プロット外に出たら強制送還するか
+enable-border-enforcement: true
+
+# メッセージ設定
+messages:
+  install: "&a[Private Dimension] プラグインが有効になりました！"
+  no-permission: "&cこの操作を行う権限がありません。"
+  give-item: "&a[Private Dimension] アイテムを付与しました。"
+  dimension-enter: "&b別世界の空間へ移動しました。"
+  dimension-return: "&b元の世界へ戻りました。"
+  border-forced: "&c[Private Dimension] プロットの外には出られません！"
+  craft-success: "&a[Private Dimension] Dimension in a Bottle をクラフトしました！"
