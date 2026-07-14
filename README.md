@@ -89,3 +89,7 @@ enable-border-enforcement: true   # Force return when leaving plot boundaries
 ## Credits
 
 PrivateDimension is based on the original **Private_Dimension** data pack created by Chuzume and is distributed in accordance with the terms of the original license.
+
+## About Development
+
+The code for this tool was written entirely by AI (Claude).
