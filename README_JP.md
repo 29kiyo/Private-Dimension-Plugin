@@ -87,3 +87,6 @@ pull-entity-radius: 3.0            # 連行半径（ブロック）
 enable-border-enforcement: true    # 境界強制送還
 ```
 
+## 開発について
+
+このツールのコードはすべてAI（Claude）に書いてもらいました。
