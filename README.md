@@ -48,8 +48,8 @@ The item can be crafted using a normal crafting table.
 
 ## Requirements
 
-* Paper 26.1.2+
-* Java 25+
+* Paper 1.21.5+
+* Java 21+
 * Geyser (optional, for Bedrock Edition support)
 
 ## Installation
