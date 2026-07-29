@@ -1,3 +1,7 @@
+# PrivateDimension
+
+プライベート次元プラグイン for Paper 1.21.5+
+
 [English](README.md)
 
 ## このデータパックについて
@@ -24,10 +28,6 @@ A derivative work of “Private_Dimension” by Chuzume.<br>
 
 ![Image](https://cdn-ak.f.st-hatena.com/images/fotolife/C/Chuzume/20230105/20230105085556.png)
 
-# PrivateDimension
-
-プライベート次元プラグイン for Paper 26.1.2
-
 ## 概要
 
 **Dimension in a Bottle** アイテムを使うと、自分専用のプライベート次元に移動できます。
@@ -49,8 +49,8 @@ A derivative work of “Private_Dimension” by Chuzume.<br>
 
 ## 必要環境
 
-- **Paper** 26.1.2+
-- **Java** 25+
+- **Paper** 1.21.5+
+- **Java** 21+
 - Geyser（統合版対応、任意）
 
 ## インストール
