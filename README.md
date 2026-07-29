@@ -2,7 +2,7 @@
 
 # PrivateDimension
 
-A private dimension plugin for Paper 26.1.2+
+A private dimension plugin for Paper 1.21.5+
 
 ## About This Plugin
 
