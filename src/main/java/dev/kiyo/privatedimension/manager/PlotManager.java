@@ -38,12 +38,19 @@ public class PlotManager {
     private final int plotSize;    // 48
     private final int plotSpacing; // 128
     private final int floorY;      // 64
+    private final int plotHeight;  // 47 (構造物のY方向サイズ。境界判定・セーフスポーン探索に使用)
+
+    private final int safeSpawnSearchRadius;
+    private final int safeSpawnSearchHeight;
 
     public PlotManager(PrivateDimensionPlugin plugin) {
         this.plugin = plugin;
         this.plotSize    = plugin.getConfig().getInt("plot-size",    48);
         this.plotSpacing = plugin.getConfig().getInt("plot-spacing", 128);
         this.floorY      = plugin.getConfig().getInt("plot-floor-y", 64);
+        this.plotHeight  = plugin.getConfig().getInt("plot-height",  47);
+        this.safeSpawnSearchRadius = plugin.getConfig().getInt("safe-spawn-search-radius", 8);
+        this.safeSpawnSearchHeight = plugin.getConfig().getInt("safe-spawn-search-height", 12);
     }
 
     /** プロットID → Z原点座標 */
@@ -86,10 +93,76 @@ public class PlotManager {
         double z = loc.getZ();
         return x >= -24 && x <= 24
             && z >= (originZ - 24) && z <= (originZ + 24)
-            && y >= (floorY - 1) && y <= (floorY + 46);
+            && y >= (floorY - 1) && y <= (floorY - 1 + plotHeight);
     }
 
     public int getFloorY()      { return floorY; }
     public int getPlotSize()    { return plotSize; }
     public int getPlotSpacing() { return plotSpacing; }
+    public int getPlotHeight()  { return plotHeight; }
+
+    // ──────────────────────────────────────────────
+    // セーフスポーン探索（カスタムNBT構造物対応）
+    // ──────────────────────────────────────────────
+
+    /**
+     * guess 地点を起点に、安全な立ち位置（足元固体・本体と頭上が空気）を
+     * 多方向（まず真上に伸びる柱、次に外側へ広がるリング状）に探索する。
+     *
+     * カスタムNBT構造物は床の高さやサイズが plot48x48.nbt と異なる場合があるため、
+     * 固定オフセットのスポーンではなく実際にブロックを確認して安全地点を決める。
+     * 見つからなければ guess をそのまま返す（フォールバック）。
+     */
+    public Location findSafeSpawn(Location guess) {
+        World world = guess.getWorld();
+        if (world == null) return guess;
+
+        int cx = guess.getBlockX();
+        int cz = guess.getBlockZ();
+        int cy = guess.getBlockY();
+
+        Location found = searchColumn(world, cx, cz, cy);
+        if (found != null) return found;
+
+        for (int r = 1; r <= safeSpawnSearchRadius; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    // リングの外周のみ走査（内側は既に探索済み半径でカバー）
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
+                    found = searchColumn(world, cx + dx, cz + dz, cy);
+                    if (found != null) return found;
+                }
+            }
+        }
+
+        plugin.getLogger().warning("[PrivateDimension] セーフスポーンが見つからなかったため、"
+            + "計算上のスポーン地点をそのまま使用します: " + guess);
+        return guess;
+    }
+
+    /** 指定 (x, z) の列を中心 y から上下に探索し、最初に見つかった安全地点を返す */
+    private Location searchColumn(World world, int x, int z, int centerY) {
+        for (int dy = 0; dy <= safeSpawnSearchHeight; dy++) {
+            int yUp = centerY + dy;
+            if (isSafeStanding(world, x, yUp, z)) {
+                return new Location(world, x + 0.5, yUp, z + 0.5);
+            }
+            if (dy == 0) continue;
+            int yDown = centerY - dy;
+            if (isSafeStanding(world, x, yDown, z)) {
+                return new Location(world, x + 0.5, yDown, z + 0.5);
+            }
+        }
+        return null;
+    }
+
+    /** 足元が固体で、本体・頭上が空気（通行可能）かを判定 */
+    private boolean isSafeStanding(World world, int x, int y, int z) {
+        var floor = world.getBlockAt(x, y - 1, z);
+        var feet  = world.getBlockAt(x, y, z);
+        var head  = world.getBlockAt(x, y + 1, z);
+        return floor.getType().isSolid()
+            && !feet.getType().isSolid()
+            && !head.getType().isSolid();
+    }
 }

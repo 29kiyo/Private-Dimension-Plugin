@@ -12,6 +12,21 @@ plot-spacing: 128
 # プロット床のY座標
 plot-floor-y: 64
 
+# プロットの高さ（NBT構造物のY方向サイズ。境界判定・セーフスポーン探索に使用）
+# デフォルトの plot48x48.nbt は 47。カスタム構造物を使う場合はその高さに合わせること。
+plot-height: 47
+
+# 使用する構造物ファイル名
+# plugins/PrivateDimension/structures/ フォルダ内に同名のファイルを置くと、
+# 同梱のデフォルト構造物の代わりにそちらが使用される（カスタムNBT対応）。
+structure-file: "plot48x48.nbt"
+
+# セーフスポーン探索: 水平方向の探索半径（ブロック）
+safe-spawn-search-radius: 8
+
+# セーフスポーン探索: 上下方向の探索範囲（ブロック、中心から上下にこの分探索）
+safe-spawn-search-height: 12
+
 # スニーク時に引き連れる最大エンティティ数
 pull-entity-limit: 10
 

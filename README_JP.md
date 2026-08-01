@@ -46,6 +46,9 @@ A derivative work of “Private_Dimension” by Chuzume.<br>
 | 🚫 プロット境界 | プロット外に出ると強制的に元の世界へ送還 |
 | ☠️ 死亡対応 | 次元内で死亡しても元の世界でリスポーン |
 | 📱 Geyser対応 | Java版・統合版（Geyser）両対応 |
+| 🧭 セーフスポーン探索 | 計算上のスポーン地点から周囲を自動探索し、安全な地面を見つけてスポーンさせる。床の高さが異なるカスタム構造物でも正しくスポーンできる |
+| 🗂️ カスタムNBT構造物 | `plugins/PrivateDimension/structures/` に自作の `.nbt` ファイルを置くと、デフォルトのプロット構造物を差し替えられる |
+| ⌨️ タブ補完 | `/pd` のサブコマンドと `/pd give` のプレイヤー名がゲーム内で補完される |
 
 ## 必要環境
 
@@ -66,6 +69,9 @@ A derivative work of “Private_Dimension” by Chuzume.<br>
 | `/pd give [player]` | アイテムを付与 | `privatedimension.admin` |
 | `/pd info` | 自分のプロット情報表示 | 全員 |
 | `/pd reload` | 設定をリロード | `privatedimension.admin` |
+| `/pd debug` | 境界チェックのデバッグ状態を表示 | `privatedimension.debug` |
+
+サブコマンド・`/pd give` のプレイヤー名はいずれもタブ補完に対応しています。
 
 ## 権限
 
@@ -81,11 +87,48 @@ A derivative work of “Private_Dimension” by Chuzume.<br>
 world-name: "private_dimension"   # 次元ワールド名
 plot-size: 48                      # プロットサイズ
 plot-spacing: 128                  # プロット間隔
-plot-floor-y: 64                   # 床のY座標（スポーンY = floor-y + 5 = 69）
+plot-floor-y: 64                   # 床のY座標（スポーンY = floor-y + 5 = 69、セーフスポーン探索でさらに補正）
+plot-height: 47                    # 構造物の高さ（Yサイズ）。境界判定・セーフスポーン探索に使用
+structure-file: "plot48x48.nbt"    # 使用する構造物ファイル名。詳細は下記「カスタム構造物」参照
+safe-spawn-search-radius: 8        # セーフスポーン探索の水平探索半径（ブロック）
+safe-spawn-search-height: 12       # セーフスポーン探索の上下探索範囲（ブロック）
 pull-entity-limit: 10              # 連行エンティティ最大数
 pull-entity-radius: 3.0            # 連行半径（ブロック）
 enable-border-enforcement: true    # 境界強制送還
 ```
+
+### カスタム構造物（カスタムNBT）
+
+デフォルトでは同梱の `plot48x48.nbt` が使用されます。自作の構造物に差し替える手順:
+
+1. Structure Block を **SAVE** モードにして構造物を `.nbt` として書き出す。
+2. サーバーを一度起動し、`plugins/PrivateDimension/structures/` フォルダを生成させる（使い方を書いた `README.txt` も自動生成されます）。
+3. 書き出した `.nbt` ファイルを、`config.yml` の `structure-file` と同じファイル名でそのフォルダに置く（またはファイル名に合わせて `structure-file` を書き換える）。
+4. 構造物のサイズ（幅・高さ）が 48×48×47 と異なる場合は `plot-size` / `plot-height` も合わせて変更する。
+5. `/pd reload` を実行するか、サーバーを再起動する。
+
+本プラグインは **セーフスポーン探索** を行うため（計算上のスポーン地点から周囲を探索し、頭上が空いた固い地面を探す）、床の高さがデフォルトと異なるカスタム構造物でも、基本的にスポーンYオフセットを手動調整する必要はありません。
+
+## 開発 / IntelliJ IDEA でのローカルテスト
+
+IntelliJ から直接 Paper サーバーを起動してプラグインをテストできます。
+
+1. **初回セットアップ** — `run/` フォルダに Paper サーバーjarをダウンロード:
+   ```bash
+   bash scripts/setup-test-server.sh
+   ```
+2. **ビルドしてテストサーバーへコピー:**
+   ```bash
+   bash scripts/build-and-copy.sh
+   ```
+   （コードを変更するたびに再実行し、サーバーを再起動/リロードしてください）
+3. **サーバー起動:**
+   - IntelliJ から: **Run/Debug Configurations** を開き、`.run/` に含まれる **Paper Test Server**（IntelliJが自動検出）を選んで ▶ 実行。
+   - またはターミナルから: `bash scripts/build-and-run.sh`（ビルド・コピー・起動を一括実行）
+4. Java版クライアントで `localhost:25565` に接続（生成される `server.properties` は手軽にテストできるよう `online-mode=false` になっています。本アカウント認証が必要な場合は変更してください）
+5. コード修正後はサーバーコンソールで `stop` → `scripts/build-and-copy.sh` を再実行 → 再起動、を繰り返します。
+
+`run/` フォルダ（サーバーjar・ワールドデータ・ログ）は `.gitignore` 済みで、いつでも削除・再生成して問題ありません。
 
 ## 開発について
 

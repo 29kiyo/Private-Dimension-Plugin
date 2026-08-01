@@ -101,6 +101,7 @@ public class PDCommand implements CommandExecutor {
         sender.sendMessage("§f/pd give [player] §7- アイテムを付与");
         sender.sendMessage("§f/pd reload §7- 設定をリロード");
         sender.sendMessage("§f/pd info §7- プロット情報を表示");
+        sender.sendMessage("§f/pd debug §7- プロット境界チェックの状態を表示");
     }
 
     private String colorize(String msg) {

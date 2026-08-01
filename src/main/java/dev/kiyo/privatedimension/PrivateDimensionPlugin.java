@@ -46,8 +46,14 @@ public class PrivateDimensionPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ItemEntityListener(dimensionBottleItem), this);
 
         // コマンド登録
-        Objects.requireNonNull(getCommand("pd")).setExecutor(new PDCommand(this));
-        Objects.requireNonNull(getCommand("privatedim")).setExecutor(new PDCommand(this));
+        PDCommand pdCommand = new PDCommand(this);
+        dev.kiyo.privatedimension.command.PDTabCompleter pdTabCompleter =
+            new dev.kiyo.privatedimension.command.PDTabCompleter(this);
+
+        Objects.requireNonNull(getCommand("pd")).setExecutor(pdCommand);
+        Objects.requireNonNull(getCommand("pd")).setTabCompleter(pdTabCompleter);
+        Objects.requireNonNull(getCommand("privatedim")).setExecutor(pdCommand);
+        Objects.requireNonNull(getCommand("privatedim")).setTabCompleter(pdTabCompleter);
 
         // ワールド初期化（1tick後）
         new BukkitRunnable() {

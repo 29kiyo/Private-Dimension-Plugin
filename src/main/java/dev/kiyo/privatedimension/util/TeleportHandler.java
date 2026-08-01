@@ -111,13 +111,17 @@ public class TeleportHandler {
                     structOrigin.getChunk().load(true);
                     dim.placeStructure(structOrigin);
 
+                    // カスタムNBT構造物は床の高さ・サイズが plot48x48.nbt と異なる場合があるため、
+                    // 計算上のスポーン地点を起点に実ブロックを確認して安全な地点へ補正する
+                    Location safeSpawn = plotManager.findSafeSpawn(spawnLoc);
+
                     player.addPotionEffect(new org.bukkit.potion.PotionEffect(
                         org.bukkit.potion.PotionEffectType.SLOW_FALLING, 20, 0, true, false));
 
-                    player.teleport(spawnLoc);
-                    pdm.setPlotPos(uid, spawnLoc.getX(), spawnLoc.getY(), spawnLoc.getZ());
-                    pullEntities(spawnLoc, bringEntities);
-                    playVfx(spawnLoc);
+                    player.teleport(safeSpawn);
+                    pdm.setPlotPos(uid, safeSpawn.getX(), safeSpawn.getY(), safeSpawn.getZ());
+                    pullEntities(safeSpawn, bringEntities);
+                    playVfx(safeSpawn);
                 } catch (Exception e) {
                     plugin.getLogger().severe("claimPlot で例外: " + e.getMessage());
                 } finally {

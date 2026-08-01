@@ -1,0 +1,14 @@
+# Maven
+target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# ローカルテスト用Paperサーバー（jarとワールドデータはコミットしない）
+run/
+
+# OS
+.DS_Store
+Thumbs.db
