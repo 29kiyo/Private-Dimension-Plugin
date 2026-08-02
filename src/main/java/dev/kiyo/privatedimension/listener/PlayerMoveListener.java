@@ -4,6 +4,7 @@ import dev.kiyo.privatedimension.PrivateDimensionPlugin;
 import dev.kiyo.privatedimension.manager.PlayerDataManager;
 import dev.kiyo.privatedimension.manager.PlotManager;
 import dev.kiyo.privatedimension.util.TeleportHandler;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -42,32 +43,55 @@ public class PlayerMoveListener implements Listener {
 
         Player player = event.getPlayer();
         if (!plugin.getDimensionManager().isPrivateDimension(player.getWorld())) return;
-        if (player.hasPermission("privatedimension.debug") && player.isOp()) return;
+        if (player.hasPermission("privatedimension.debug") && player.isOp()) {
+            plugin.getLogger().info("[PrivateDimension] border-debug: OPバイパスで終了 " + player.getName());
+            return;
+        }
 
         String bypassTag = plugin.getConfig().getString("plot-bypass-tag", "pd_free");
-        if (bypassTag != null && !bypassTag.isEmpty() && player.getScoreboardTags().contains(bypassTag)) return;
+        if (bypassTag != null && !bypassTag.isEmpty() && player.getScoreboardTags().contains(bypassTag)) {
+            plugin.getLogger().info("[PrivateDimension] border-debug: タグバイパスで終了 " + player.getName());
+            return;
+        }
 
         UUID uid = player.getUniqueId();
-        if (!pdm.hasPlot(uid)) return;
+        if (!pdm.hasPlot(uid)) {
+            plugin.getLogger().info("[PrivateDimension] border-debug: hasPlot=false で終了 " + player.getName());
+            return;
+        }
 
         // handleUse によるテレポート処理中は強制送還しない（競合防止）
-        if (teleportHandler.isTeleporting(uid)) return;
+        if (teleportHandler.isTeleporting(uid)) {
+            plugin.getLogger().info("[PrivateDimension] border-debug: isTeleporting=true で終了 " + player.getName());
+            return;
+        }
 
         int plotId = pdm.getPlotId(uid);
         if (plotManager.isInsidePlot(plotId, event.getTo())) return;
 
+        plugin.getLogger().info("[PrivateDimension] border-debug: 境界外を検知 plotId=" + plotId
+            + " to=" + event.getTo().getBlockX() + "," + event.getTo().getBlockY() + "," + event.getTo().getBlockZ());
+
         long now = System.currentTimeMillis();
         Long last = cooldown.get(uid);
-        if (last != null && now - last < COOLDOWN_MS) return;
+        if (last != null && now - last < COOLDOWN_MS) {
+            plugin.getLogger().info("[PrivateDimension] border-debug: クールダウン中で終了");
+            return;
+        }
         cooldown.put(uid, now);
 
-        if (!plugin.getConfig().getBoolean("enable-border-enforcement", true)) return;
+        if (!plugin.getConfig().getBoolean("enable-border-enforcement", true)) {
+            plugin.getLogger().info("[PrivateDimension] border-debug: enable-border-enforcement=false で終了");
+            return;
+        }
 
         player.sendMessage(colorize(plugin.getConfig().getString(
             "messages.border-forced", "&c[Private Dimension] プロットの外には出られません！")));
 
-        // MOD版と同じ挙動: 元の世界には出さず、自分のプロットのスポーン地点へ押し戻す
-        teleportHandler.pushBackToPlot(player, plotManager.getPlotSpawn(plotId, player.getWorld()));
+        // MOD版と同じ挙動: 元の世界には出さず、自分のプロットのスポーン地点（安全地点）へ押し戻す
+        plugin.getLogger().info("[PrivateDimension] border-debug: pushBackToPlot 呼び出し plotId=" + plotId);
+        Location pushBackDest = plotManager.findSafeSpawn(plotManager.getPlotSpawn(plotId, player.getWorld()));
+        teleportHandler.pushBackToPlot(player, pushBackDest);
     }
 
     private String colorize(String msg) {
