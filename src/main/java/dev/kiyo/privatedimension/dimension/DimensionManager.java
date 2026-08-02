@@ -54,8 +54,8 @@ public class DimensionManager {
                 "\n" +
                 "サイズを変更した場合は config.yml の plot-size / plot-height も\n" +
                 "構造物のサイズに合わせて変更してください。\n" +
-                "スポーン地点は自動探索（セーフスポーン探索）されるため、\n" +
-                "床の高さが変わっても基本的に自動で対応します。\n";
+                "スポーン地点は plot-floor-y からの固定オフセットです（MOD版と同じ方式）。\n" +
+                "床の高さが変わる場合は plot-floor-y も合わせて調整してください。\n";
             try {
                 Files.writeString(readme.toPath(), text, java.nio.charset.StandardCharsets.UTF_8);
             } catch (IOException ignored) {}

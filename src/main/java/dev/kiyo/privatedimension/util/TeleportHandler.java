@@ -111,17 +111,13 @@ public class TeleportHandler {
                     structOrigin.getChunk().load(true);
                     dim.placeStructure(structOrigin);
 
-                    // カスタムNBT構造物は床の高さ・サイズが plot48x48.nbt と異なる場合があるため、
-                    // 計算上のスポーン地点を起点に実ブロックを確認して安全な地点へ補正する
-                    Location safeSpawn = plotManager.findSafeSpawn(spawnLoc);
-
                     player.addPotionEffect(new org.bukkit.potion.PotionEffect(
                         org.bukkit.potion.PotionEffectType.SLOW_FALLING, 20, 0, true, false));
 
-                    player.teleport(safeSpawn);
-                    pdm.setPlotPos(uid, safeSpawn.getX(), safeSpawn.getY(), safeSpawn.getZ());
-                    pullEntities(safeSpawn, bringEntities);
-                    playVfx(safeSpawn);
+                    player.teleport(spawnLoc);
+                    pdm.setPlotPos(uid, spawnLoc.getX(), spawnLoc.getY(), spawnLoc.getZ());
+                    pullEntities(spawnLoc, bringEntities);
+                    playVfx(spawnLoc);
                 } catch (Exception e) {
                     plugin.getLogger().severe("claimPlot で例外: " + e.getMessage());
                 } finally {
@@ -129,6 +125,25 @@ public class TeleportHandler {
                 }
             }
         }.runTask(plugin);
+    }
+
+    /**
+     * プロット境界の外に出たプレイヤーを、自分のプロットのスポーン地点へ押し戻す。
+     * MOD版の pushBackToPlot と同じ挙動: 元の世界には出さず、次元内に留める。
+     */
+    public void pushBackToPlot(Player player, Location dest) {
+        UUID uid = player.getUniqueId();
+        teleporting.add(uid);
+        try {
+            playVfx(player.getLocation());
+            player.teleport(dest);
+            pdm.setPlotPos(uid, dest.getX(), dest.getY(), dest.getZ());
+            playVfx(dest);
+        } catch (Exception e) {
+            plugin.getLogger().severe("pushBackToPlot で例外: " + e.getMessage());
+        } finally {
+            releaseNextTick(uid);
+        }
     }
 
     // ──────────────────────────────────────────────

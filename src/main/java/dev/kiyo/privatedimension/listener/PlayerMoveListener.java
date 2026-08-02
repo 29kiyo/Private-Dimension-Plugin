@@ -44,13 +44,17 @@ public class PlayerMoveListener implements Listener {
         if (!plugin.getDimensionManager().isPrivateDimension(player.getWorld())) return;
         if (player.hasPermission("privatedimension.debug") && player.isOp()) return;
 
+        String bypassTag = plugin.getConfig().getString("plot-bypass-tag", "pd_free");
+        if (bypassTag != null && !bypassTag.isEmpty() && player.getScoreboardTags().contains(bypassTag)) return;
+
         UUID uid = player.getUniqueId();
         if (!pdm.hasPlot(uid)) return;
 
         // handleUse によるテレポート処理中は強制送還しない（競合防止）
         if (teleportHandler.isTeleporting(uid)) return;
 
-        if (plotManager.isInsidePlot(pdm.getPlotId(uid), event.getTo())) return;
+        int plotId = pdm.getPlotId(uid);
+        if (plotManager.isInsidePlot(plotId, event.getTo())) return;
 
         long now = System.currentTimeMillis();
         Long last = cooldown.get(uid);
@@ -61,8 +65,9 @@ public class PlayerMoveListener implements Listener {
 
         player.sendMessage(colorize(plugin.getConfig().getString(
             "messages.border-forced", "&c[Private Dimension] プロットの外には出られません！")));
-        teleportHandler.playVfx(player.getLocation());
-        teleportHandler.gotoBaseWorld(player);
+
+        // MOD版と同じ挙動: 元の世界には出さず、自分のプロットのスポーン地点へ押し戻す
+        teleportHandler.pushBackToPlot(player, plotManager.getPlotSpawn(plotId, player.getWorld()));
     }
 
     private String colorize(String msg) {

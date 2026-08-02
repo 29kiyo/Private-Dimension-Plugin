@@ -12,7 +12,7 @@ plot-spacing: 128
 # プロット床のY座標
 plot-floor-y: 64
 
-# プロットの高さ（NBT構造物のY方向サイズ。境界判定・セーフスポーン探索に使用）
+# プロットの高さ（NBT構造物のY方向サイズ。境界判定に使用）
 # デフォルトの plot48x48.nbt は 47。カスタム構造物を使う場合はその高さに合わせること。
 plot-height: 47
 
@@ -21,11 +21,9 @@ plot-height: 47
 # 同梱のデフォルト構造物の代わりにそちらが使用される（カスタムNBT対応）。
 structure-file: "plot48x48.nbt"
 
-# セーフスポーン探索: 水平方向の探索半径（ブロック）
-safe-spawn-search-radius: 8
-
-# セーフスポーン探索: 上下方向の探索範囲（ブロック、中心から上下にこの分探索）
-safe-spawn-search-height: 12
+# このタグを持つプレイヤーはプロット境界チェックを回避できる（MOD版の plotBypassTag と同じ）
+# 付与例: /tag <player> add pd_free
+plot-bypass-tag: "pd_free"
 
 # スニーク時に引き連れる最大エンティティ数
 pull-entity-limit: 10
@@ -33,7 +31,8 @@ pull-entity-limit: 10
 # 引き連れる範囲 (ブロック)
 pull-entity-radius: 3.0
 
-# プロット外に出たら強制送還するか
+# プロット外に出たら自分のプロットのスポーン地点へ強制的に押し戻すか
+# (元の世界には送還しない。MOD版と同じ挙動)
 enable-border-enforcement: true
 
 # メッセージ設定
