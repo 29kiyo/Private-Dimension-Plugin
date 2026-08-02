@@ -21,6 +21,9 @@ public class TeleportHandler {
     // teleport() 完了後も1tick維持することで、同tick内の PlayerMoveEvent の誤介入を防ぐ
     private final Set<UUID> teleporting = Collections.synchronizedSet(new HashSet<>());
 
+    // 境界外プッシュバック直後の落下ダメージ無効化（UUID → 無効化終了時刻ミリ秒）
+    private final Map<UUID, Long> fallImmuneUntil = new java.util.concurrent.ConcurrentHashMap<>();
+
     public TeleportHandler(PrivateDimensionPlugin plugin) {
         this.plugin = plugin;
         this.dim = plugin.getDimensionManager();
@@ -139,6 +142,10 @@ public class TeleportHandler {
     /**
      * プロット境界の外に出たプレイヤーを、自分のプロットのスポーン地点へ押し戻す。
      * MOD版の pushBackToPlot と同じ挙動: 元の世界には出さず、次元内に留める。
+     *
+     * 境界を越えて落下している最中に検知 → 見つかった安全地点へ着地させた瞬間、
+     * それまでの落下速度によって着地ダメージを受けてしまうことがあるため、
+     * 3秒間だけ落下ダメージを無効化する。
      */
     public void pushBackToPlot(Player player, Location dest) {
         UUID uid = player.getUniqueId();
@@ -146,6 +153,8 @@ public class TeleportHandler {
         try {
             playVfx(player.getLocation());
             player.teleport(dest);
+            player.setFallDistance(0f);
+            grantFallImmunity(player, 3000);
             pdm.setPlotPos(uid, dest.getX(), dest.getY(), dest.getZ());
             playVfx(dest);
         } catch (Exception e) {
@@ -153,6 +162,22 @@ public class TeleportHandler {
         } finally {
             releaseNextTick(uid);
         }
+    }
+
+    /** durationMs ミリ秒の間、落下ダメージを無効化する */
+    public void grantFallImmunity(Player player, long durationMs) {
+        fallImmuneUntil.put(player.getUniqueId(), System.currentTimeMillis() + durationMs);
+    }
+
+    /** 現在、落下ダメージ無効化の期間中かどうか */
+    public boolean isFallImmune(UUID uid) {
+        Long until = fallImmuneUntil.get(uid);
+        if (until == null) return false;
+        if (System.currentTimeMillis() > until) {
+            fallImmuneUntil.remove(uid);
+            return false;
+        }
+        return true;
     }
 
     // ──────────────────────────────────────────────

@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import java.util.HashMap;
@@ -97,6 +98,20 @@ public class PlayerMoveListener implements Listener {
         if (debugLogging) plugin.getLogger().info("[PrivateDimension] border-debug: pushBackToPlot 呼び出し plotId=" + plotId);
         Location pushBackDest = plotManager.findSafeSpawn(plotManager.getPlotSpawn(plotId, player.getWorld()));
         teleportHandler.pushBackToPlot(player, pushBackDest);
+    }
+
+    /**
+     * 境界外プッシュバック直後の3秒間は落下ダメージを無効化する。
+     * （落下中に境界外を検知して安全地点へ着地させると、それまでの落下速度で
+     *  着地ダメージを受けてしまうことがあるため）
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.FALL) return;
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (teleportHandler != null && teleportHandler.isFallImmune(player.getUniqueId())) {
+            event.setCancelled(true);
+        }
     }
 
     private String colorize(String msg) {
