@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
  *  /pd give [player]  - アイテムを付与
  *  /pd reload         - 設定リロード
  *  /pd info           - 自分のプロット情報
- *  /pd debug          - プロット境界を無視する（op限定）
+ *  /pd debug          - デバッグ情報を表示（op限定）
  */
 public class PDCommand implements CommandExecutor {
 
@@ -63,6 +63,7 @@ public class PDCommand implements CommandExecutor {
                     return true;
                 }
                 plugin.reloadConfig();
+                plugin.getPlotManager().reload();
                 sender.sendMessage("§a[PrivateDimension] 設定をリロードしました。");
             }
             case "info" -> {
@@ -89,7 +90,40 @@ public class PDCommand implements CommandExecutor {
                     sender.sendMessage("§c権限がありません。");
                     return true;
                 }
-                sender.sendMessage("§e[PrivateDimension] デバッグ: プロット境界チェックはop権限で無効化されます。");
+
+                var pm = plugin.getPlotManager();
+                String bypassTag = plugin.getConfig().getString("plot-bypass-tag", "pd_free");
+                boolean borderEnforcement = plugin.getConfig().getBoolean("enable-border-enforcement", true);
+
+                sender.sendMessage("§e[PrivateDimension] デバッグ情報:");
+                sender.sendMessage("§7enable-border-enforcement: §f" + borderEnforcement);
+                sender.sendMessage("§7plot-bypass-tag: §f" + bypassTag);
+                sender.sendMessage(String.format(
+                    "§7plot-size=%d plot-spacing=%d plot-floor-y=%d plot-height=%d",
+                    pm.getPlotSize(), pm.getPlotSpacing(), pm.getFloorY(), pm.getPlotHeight()));
+
+                if (sender instanceof Player player) {
+                    boolean inDimension = plugin.getDimensionManager().isPrivateDimension(player.getWorld());
+                    boolean opBypass = player.hasPermission("privatedimension.debug") && player.isOp();
+                    boolean tagBypass = bypassTag != null && !bypassTag.isEmpty()
+                        && player.getScoreboardTags().contains(bypassTag);
+
+                    sender.sendMessage("§7次元内にいるか: §f" + inDimension);
+                    sender.sendMessage("§7OPによる境界バイパス: §f" + opBypass);
+                    sender.sendMessage("§7タグ(" + bypassTag + ")による境界バイパス: §f" + tagBypass);
+
+                    var pdm = plugin.getPlayerDataManager();
+                    java.util.UUID uid = player.getUniqueId();
+                    if (pdm.hasPlot(uid)) {
+                        int plotId = pdm.getPlotId(uid);
+                        boolean inside = pm.isInsidePlot(plotId, player.getLocation());
+                        sender.sendMessage("§7自分のplotId: §f" + plotId + " §7自分のプロット内か: §f" + inside);
+                    } else {
+                        sender.sendMessage("§7まだプロットを持っていません。");
+                    }
+                } else {
+                    sender.sendMessage("§7(コンソール実行のためプレイヤー固有の情報はありません)");
+                }
             }
             default -> sendHelp(sender);
         }

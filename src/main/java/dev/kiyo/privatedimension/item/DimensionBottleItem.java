@@ -44,6 +44,15 @@ public class DimensionBottleItem {
         meta.setColor(Color.fromRGB(0x40, 0xBF, 0xFF));
         meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, ITEM_ID);
 
+        // エンチャント風の光沢（実際の効果は付与しない見た目だけの演出）
+        // Paper/Spigot どちらでも確実に効く方法: 隠しエンチャントを付けて表示だけ隠す
+        try {
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.LURE, 1, true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        } catch (Exception e) {
+            plugin.getLogger().warning("エンチャント光沢の付与に失敗: " + e.getMessage());
+        }
+
         // 炎・溶岩耐性（IS_FIRE タグ）
         try {
             meta.setDamageResistant(DamageTypeTags.IS_FIRE);

@@ -8,6 +8,7 @@ import dev.kiyo.privatedimension.listener.ItemEntityListener;
 import dev.kiyo.privatedimension.listener.ItemUseListener;
 import dev.kiyo.privatedimension.listener.PlayerDeathListener;
 import dev.kiyo.privatedimension.listener.PlayerMoveListener;
+import dev.kiyo.privatedimension.listener.RecipeUnlockListener;
 import dev.kiyo.privatedimension.manager.PlayerDataManager;
 import dev.kiyo.privatedimension.manager.PlotManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -44,6 +45,7 @@ public class PrivateDimensionPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(playerMoveListener, this);
         getServer().getPluginManager().registerEvents(new CraftListener(this), this);
         getServer().getPluginManager().registerEvents(new ItemEntityListener(dimensionBottleItem), this);
+        getServer().getPluginManager().registerEvents(new RecipeUnlockListener(this), this);
 
         // コマンド登録
         PDCommand pdCommand = new PDCommand(this);
@@ -62,6 +64,11 @@ public class PrivateDimensionPlugin extends JavaPlugin {
                 dimensionManager.initDimension();
                 getLogger().info("PrivateDimension が有効化されました！");
                 getLogger().info("プライベート次元ワールド: " + getConfig().getString("world-name"));
+
+                // 既にオンラインのプレイヤーにもレシピを付与（/reload 等で再有効化された場合の対応）
+                for (org.bukkit.entity.Player p : getServer().getOnlinePlayers()) {
+                    p.discoverRecipes(java.util.Collections.singletonList(dimensionBottleItem.getRecipeKey()));
+                }
             }
         }.runTaskLater(this, 1L);
     }
