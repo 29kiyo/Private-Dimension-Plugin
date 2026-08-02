@@ -43,7 +43,7 @@ public class PlotManager {
     private int plotSize;    // 48
     private int plotSpacing; // 128
     private int floorY;      // 64
-    private int plotHeight;  // 47 (構造物のY方向サイズ。境界判定に使用)
+    private int plotHeight;  // 47 (構造物のY方向サイズ。境界判定・セーフスポーン探索に使用)
 
     private int safeSpawnSearchRadius;
     private int safeSpawnSearchHeight;
@@ -137,11 +137,17 @@ public class PlotManager {
      */
     public Location findSafeSpawn(Location guess) {
         World world = guess.getWorld();
-        if (world == null) return guess;
+        if (world == null) {
+            plugin.getLogger().info("[PrivateDimension] findSafeSpawn: guessのworldがnullのためそのまま返す");
+            return guess;
+        }
 
         int cx = guess.getBlockX();
         int cy = guess.getBlockY();
         int cz = guess.getBlockZ();
+
+        plugin.getLogger().info("[PrivateDimension] findSafeSpawn 開始: guess=" + cx + "," + cy + "," + cz
+            + " (radius=" + safeSpawnSearchRadius + ", height=" + safeSpawnSearchHeight + ")");
 
         int maxR = Math.max(safeSpawnSearchRadius, safeSpawnSearchHeight);
 
@@ -157,6 +163,8 @@ public class PlotManager {
 
                         int x = cx + dx, y = cy + dy, z = cz + dz;
                         if (isSafeStanding(world, x, y, z)) {
+                            plugin.getLogger().info("[PrivateDimension] findSafeSpawn 成功: "
+                                + x + "," + y + "," + z + " (guessから半径" + r + ")");
                             return new Location(world, x + 0.5, y, z + 0.5);
                         }
                     }

@@ -75,12 +75,17 @@ public class TeleportHandler {
         World pdWorld = dim.getPrivateDimension();
 
         double[] saved = pdm.getPlotPos(uid);
-        Location dest = (saved != null)
+        Location guess = (saved != null)
             ? new Location(pdWorld, saved[0], saved[1], saved[2])
             : plotManager.getPlotSpawn(pdm.getPlotId(uid), pdWorld);
 
+        // 保存座標は plot-size / structure-file の設定変更後は無効になっている場合があるため、
+        // 他の入場経路と同様に必ず findSafeSpawn を通してから採用する
+        Location dest = plotManager.findSafeSpawn(guess);
+
         try {
             player.teleport(dest);
+            pdm.setPlotPos(uid, dest.getX(), dest.getY(), dest.getZ());
             pullEntities(dest, bringEntities);
             playVfx(dest);
         } catch (Exception e) {
@@ -111,13 +116,17 @@ public class TeleportHandler {
                     structOrigin.getChunk().load(true);
                     dim.placeStructure(structOrigin);
 
+                    // カスタムNBT構造物は床の高さ・サイズが plot48x48.nbt と異なる場合があるため、
+                    // 計算上のスポーン地点を起点に実ブロックを確認して安全な地点へ補正する
+                    Location safeSpawn = plotManager.findSafeSpawn(spawnLoc);
+
                     player.addPotionEffect(new org.bukkit.potion.PotionEffect(
                         org.bukkit.potion.PotionEffectType.SLOW_FALLING, 20, 0, true, false));
 
-                    player.teleport(spawnLoc);
-                    pdm.setPlotPos(uid, spawnLoc.getX(), spawnLoc.getY(), spawnLoc.getZ());
-                    pullEntities(spawnLoc, bringEntities);
-                    playVfx(spawnLoc);
+                    player.teleport(safeSpawn);
+                    pdm.setPlotPos(uid, safeSpawn.getX(), safeSpawn.getY(), safeSpawn.getZ());
+                    pullEntities(safeSpawn, bringEntities);
+                    playVfx(safeSpawn);
                 } catch (Exception e) {
                     plugin.getLogger().severe("claimPlot で例外: " + e.getMessage());
                 } finally {

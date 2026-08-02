@@ -8,6 +8,7 @@ out/
 
 # ローカルテスト用Paperサーバー（jarとワールドデータはコミットしない）
 run/
+.run
 
 # OS
 .DS_Store
