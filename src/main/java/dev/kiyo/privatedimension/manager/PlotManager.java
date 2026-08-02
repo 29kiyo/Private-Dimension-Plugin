@@ -47,6 +47,7 @@ public class PlotManager {
 
     private int safeSpawnSearchRadius;
     private int safeSpawnSearchHeight;
+    private boolean debugLogging;
 
     public PlotManager(PrivateDimensionPlugin plugin) {
         this.plugin = plugin;
@@ -64,6 +65,7 @@ public class PlotManager {
         this.plotHeight  = plugin.getConfig().getInt("plot-height",  47);
         this.safeSpawnSearchRadius = plugin.getConfig().getInt("safe-spawn-search-radius", 8);
         this.safeSpawnSearchHeight = plugin.getConfig().getInt("safe-spawn-search-height", 12);
+        this.debugLogging = plugin.getConfig().getBoolean("debug-logging", false);
     }
 
     /** プロットID → Z原点座標 */
@@ -138,7 +140,7 @@ public class PlotManager {
     public Location findSafeSpawn(Location guess) {
         World world = guess.getWorld();
         if (world == null) {
-            plugin.getLogger().info("[PrivateDimension] findSafeSpawn: guessのworldがnullのためそのまま返す");
+            if (debugLogging) plugin.getLogger().info("[PrivateDimension] findSafeSpawn: guessのworldがnullのためそのまま返す");
             return guess;
         }
 
@@ -146,8 +148,10 @@ public class PlotManager {
         int cy = guess.getBlockY();
         int cz = guess.getBlockZ();
 
-        plugin.getLogger().info("[PrivateDimension] findSafeSpawn 開始: guess=" + cx + "," + cy + "," + cz
-            + " (radius=" + safeSpawnSearchRadius + ", height=" + safeSpawnSearchHeight + ")");
+        if (debugLogging) {
+            plugin.getLogger().info("[PrivateDimension] findSafeSpawn 開始: guess=" + cx + "," + cy + "," + cz
+                + " (radius=" + safeSpawnSearchRadius + ", height=" + safeSpawnSearchHeight + ")");
+        }
 
         int maxR = Math.max(safeSpawnSearchRadius, safeSpawnSearchHeight);
 
@@ -163,8 +167,10 @@ public class PlotManager {
 
                         int x = cx + dx, y = cy + dy, z = cz + dz;
                         if (isSafeStanding(world, x, y, z)) {
-                            plugin.getLogger().info("[PrivateDimension] findSafeSpawn 成功: "
-                                + x + "," + y + "," + z + " (guessから半径" + r + ")");
+                            if (debugLogging) {
+                                plugin.getLogger().info("[PrivateDimension] findSafeSpawn 成功: "
+                                    + x + "," + y + "," + z + " (guessから半径" + r + ")");
+                            }
                             return new Location(world, x + 0.5, y, z + 0.5);
                         }
                     }

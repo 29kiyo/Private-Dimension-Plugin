@@ -25,6 +25,10 @@ structure-file: "plot48x48.nbt"
 # 付与例: /tag <player> add pd_free
 plot-bypass-tag: "pd_free"
 
+# セーフスポーン探索や境界チェックの詳細ログをコンソールに出すか（トラブルシュート用）
+# 通常は false のままでOK。見つからなかった場合の警告は常に表示される。
+debug-logging: false
+
 # スニーク時に引き連れる最大エンティティ数
 pull-entity-limit: 10
 
