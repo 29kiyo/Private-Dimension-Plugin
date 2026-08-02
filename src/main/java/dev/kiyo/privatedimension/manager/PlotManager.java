@@ -28,24 +28,42 @@ import org.bukkit.World;
  *
  * isInsidePlot の Y 範囲:
  *   下限 = structOrigin.Y = floorY - 1 = 63
- *   上限 = structOrigin.Y + 47 = 63 + 47 = 110
- *   → Y: [floorY-1, floorY+46]
+ *   上限 = structOrigin.Y + plotHeight
+ *   → Y: [floorY-1, floorY-1+plotHeight]
+ *
+ * X/Z 範囲は plot-size に連動する（half = plot-size / 2）。
+ * デフォルト同梱の plot48x48.nbt は物理的に48x48固定なので、
+ * plot-size を48以外にする場合は、その幅に合ったカスタムNBTを用意すること。
  */
 public class PlotManager {
 
     private final PrivateDimensionPlugin plugin;
 
-    private final int plotSize;    // 48
-    private final int plotSpacing; // 128
-    private final int floorY;      // 64
-    private final int plotHeight;  // 47 (構造物のY方向サイズ。境界判定に使用)
+    // /pd reload で再読み込みできるよう final を外している
+    private int plotSize;    // 48
+    private int plotSpacing; // 128
+    private int floorY;      // 64
+    private int plotHeight;  // 47 (構造物のY方向サイズ。境界判定に使用)
+
+    private int safeSpawnSearchRadius;
+    private int safeSpawnSearchHeight;
 
     public PlotManager(PrivateDimensionPlugin plugin) {
         this.plugin = plugin;
+        reload();
+    }
+
+    /**
+     * config.yml から値を再読み込みする。
+     * plugin.reloadConfig() の後に必ず呼ぶこと（呼ばないと古い値のまま動作してしまう）。
+     */
+    public void reload() {
         this.plotSize    = plugin.getConfig().getInt("plot-size",    48);
         this.plotSpacing = plugin.getConfig().getInt("plot-spacing", 128);
         this.floorY      = plugin.getConfig().getInt("plot-floor-y", 64);
         this.plotHeight  = plugin.getConfig().getInt("plot-height",  47);
+        this.safeSpawnSearchRadius = plugin.getConfig().getInt("safe-spawn-search-radius", 8);
+        this.safeSpawnSearchHeight = plugin.getConfig().getInt("safe-spawn-search-height", 12);
     }
 
     /** プロットID → Z原点座標 */
@@ -65,29 +83,34 @@ public class PlotManager {
     }
 
     /**
-     * 構造物配置の南西コーナー（X=-24, Y=floorY-1, Z=originZ-24）
+     * 構造物配置の南西コーナー（X=-plotSize/2, Y=floorY-1, Z=originZ-plotSize/2）
      *
-     * NBT Y=0 がここに対応する
+     * NBT Y=0 がここに対応する。
+     * 注意: デフォルト同梱の plot48x48.nbt は物理的に48x48固定。
+     * plot-size を48以外にする場合は、その幅に合ったカスタムNBTを用意すること
+     * （そうしないと構造物と境界がズレる）。
      */
     public Location getPlotStructureOrigin(int plotId, World world) {
         int originZ = getPlotOriginZ(plotId);
-        return new Location(world, -24, floorY - 1, originZ - 24);
+        int half = plotSize / 2;
+        return new Location(world, -half, floorY - 1, originZ - half);
     }
 
     /**
      * 座標がプロット内かチェック
      *
-     * X: [-24, 24]
-     * Z: [originZ-24, originZ+24]
-     * Y: [floorY-1, floorY+46]  (structOrigin Y 〜 structOrigin Y + NBT高さ47)
+     * X: [-plotSize/2, plotSize/2]
+     * Z: [originZ-plotSize/2, originZ+plotSize/2]
+     * Y: [floorY-1, floorY-1+plotHeight]  (structOrigin Y 〜 structOrigin Y + 高さ)
      */
     public boolean isInsidePlot(int plotId, Location loc) {
         int originZ = getPlotOriginZ(plotId);
+        int half = plotSize / 2;
         double x = loc.getX();
         double y = loc.getY();
         double z = loc.getZ();
-        return x >= -24 && x <= 24
-            && z >= (originZ - 24) && z <= (originZ + 24)
+        return x >= -half && x <= half
+            && z >= (originZ - half) && z <= (originZ + half)
             && y >= (floorY - 1) && y <= (floorY - 1 + plotHeight);
     }
 
@@ -95,4 +118,64 @@ public class PlotManager {
     public int getPlotSize()    { return plotSize; }
     public int getPlotSpacing() { return plotSpacing; }
     public int getPlotHeight()  { return plotHeight; }
+
+    // ──────────────────────────────────────────────
+    // セーフスポーン探索（カスタムNBT構造物対応）
+    // ──────────────────────────────────────────────
+
+    /**
+     * guess 地点を中心に、安全な立ち位置（足元が固体、本体と頭上が空気）を
+     * X・Y・Z 全方向へ同時に、半径を1ずつ広げながら探索する（3次元シェル探索）。
+     *
+     * 各半径 r では、dx・dy・dz のうち最大値がちょうど r になるセルだけを調べるため、
+     * 真上/真下/左右だけでなく斜め方向も含めて、guess に近い順にまんべんなく走査する。
+     * カスタムNBT構造物は床の高さやサイズが plot48x48.nbt と異なる場合があるため、
+     * 固定オフセットのスポーンではなく実際にブロックを確認して安全地点を決める。
+     * プロット範囲かどうかは問わない（NBTサイズと plot-size がズレていても、
+     * そこに実在する床を見つけられるようにするため）。
+     * 見つからなければ guess をそのまま返す（フォールバック）。
+     */
+    public Location findSafeSpawn(Location guess) {
+        World world = guess.getWorld();
+        if (world == null) return guess;
+
+        int cx = guess.getBlockX();
+        int cy = guess.getBlockY();
+        int cz = guess.getBlockZ();
+
+        int maxR = Math.max(safeSpawnSearchRadius, safeSpawnSearchHeight);
+
+        for (int r = 0; r <= maxR; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                if (Math.abs(dx) > safeSpawnSearchRadius) continue;
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.abs(dz) > safeSpawnSearchRadius) continue;
+                    for (int dy = -r; dy <= r; dy++) {
+                        if (Math.abs(dy) > safeSpawnSearchHeight) continue;
+                        // このシェル(半径r)で初めて到達するセルだけを見る（内側は既に探索済み）
+                        if (Math.max(Math.abs(dx), Math.max(Math.abs(dy), Math.abs(dz))) != r) continue;
+
+                        int x = cx + dx, y = cy + dy, z = cz + dz;
+                        if (isSafeStanding(world, x, y, z)) {
+                            return new Location(world, x + 0.5, y, z + 0.5);
+                        }
+                    }
+                }
+            }
+        }
+
+        plugin.getLogger().warning("[PrivateDimension] セーフスポーンが見つからなかったため、"
+            + "計算上のスポーン地点をそのまま使用します: " + guess);
+        return guess;
+    }
+
+    /** 足元が固体で、本体・頭上が空気（通行可能）かを判定 */
+    private boolean isSafeStanding(World world, int x, int y, int z) {
+        var floor = world.getBlockAt(x, y - 1, z);
+        var feet  = world.getBlockAt(x, y, z);
+        var head  = world.getBlockAt(x, y + 1, z);
+        return floor.getType().isSolid()
+            && !feet.getType().isSolid()
+            && !head.getType().isSolid();
+    }
 }
