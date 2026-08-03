@@ -1,20 +1,35 @@
 #!/usr/bin/env bash
 # ローカルテスト用の Paper サーバーを run/ フォルダにセットアップする。
 # Git Bash / bash から実行:
-#   bash scripts/setup-test-server.sh
+#   bash scripts/setup-test-server.sh              # デフォルト: 1.21.5
+#   bash scripts/setup-test-server.sh 1.21.8        # バージョンを指定
 #
-# 一度実行すれば run/paper.jar が用意される（既にあれば再ダウンロードしない）。
-# バージョンを変えたい場合は下の MC_VERSION を書き換えて再実行してください。
+# 既に run/paper.jar がある場合、指定バージョンと違えば自動的に再ダウンロードする。
+# バージョンを切り替えてテストする際は、ワールドデータの互換性問題を避けるため
+# scripts/reset-test-world.sh も合わせて実行することを推奨（README参照）。
 
 set -euo pipefail
 
-MC_VERSION="1.21.5"
+MC_VERSION="${1:-1.21.5}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 RUN_DIR="$PROJECT_DIR/run"
 
 mkdir -p "$RUN_DIR/plugins"
 cd "$RUN_DIR"
+
+VERSION_MARKER=".paper-version"
+PREVIOUS_VERSION=""
+if [ -f "$VERSION_MARKER" ]; then
+    PREVIOUS_VERSION=$(cat "$VERSION_MARKER")
+fi
+
+if [ -f paper.jar ] && [ "$PREVIOUS_VERSION" != "$MC_VERSION" ]; then
+    echo "既存の run/paper.jar は '${PREVIOUS_VERSION:-不明なバージョン}' 用です。"
+    echo "'${MC_VERSION}' に切り替えるため再ダウンロードします。"
+    echo "(ワールドデータのバージョン互換が心配な場合は先に scripts/reset-test-world.sh を実行してください)"
+    rm -f paper.jar
+fi
 
 if [ ! -f paper.jar ]; then
     echo "Paper ${MC_VERSION} の最新ビルド情報を取得中... (fill.papermc.io v3 API)"
@@ -30,12 +45,15 @@ if [ ! -f paper.jar ]; then
     DOWNLOAD_URL=""
 
     if command -v jq >/dev/null 2>&1; then
+        # jq が使える場合はこちらが確実
         DOWNLOAD_URL=$(echo "$BUILDS_JSON" \
             | jq -r 'map(select(.channel == "STABLE")) | last | .downloads."server:default".url // empty')
         if [ -z "$DOWNLOAD_URL" ]; then
+            # STABLE が無ければ最新ビルドにフォールバック
             DOWNLOAD_URL=$(echo "$BUILDS_JSON" | jq -r 'last | .downloads."server:default".url // empty')
         fi
     else
+        # jq が無い環境向けの簡易パーサ（grep -P を使用）
         mapfile -t CHANNEL_ARR < <(echo "$BUILDS_JSON" | grep -oP '"channel":"\K[A-Z]+')
         mapfile -t URL_ARR < <(echo "$BUILDS_JSON" | grep -oP '"server:default":\{"name":"[^"]*","url":"\K[^"]*')
 
@@ -59,13 +77,15 @@ if [ ! -f paper.jar ]; then
 
     echo "ダウンロード中: ${DOWNLOAD_URL}"
     curl -L -H "User-Agent: ${USER_AGENT}" -o paper.jar "$DOWNLOAD_URL"
-    echo "ダウンロード完了: run/paper.jar"
+    echo "${MC_VERSION}" > "$VERSION_MARKER"
+    echo "ダウンロード完了: run/paper.jar (${MC_VERSION})"
 else
-    echo "run/paper.jar は既に存在します（再ダウンロードしません）。"
+    echo "run/paper.jar (${MC_VERSION}) は既に存在します（再ダウンロードしません）。"
 fi
 
 echo "eula=true" > eula.txt
 
+# server.properties が無ければ最低限の設定を作成
 if [ ! -f server.properties ]; then
     cat > server.properties <<'EOF'
 online-mode=false
@@ -78,5 +98,5 @@ fi
 
 echo ""
 echo "セットアップ完了。次のいずれかで起動できます:"
-echo "  1) bash scripts/build-and-run.sh"
+echo "  1) bash scripts/build-and-run.sh          （ビルド→jar配置→起動を一括実行）"
 echo "  2) IntelliJ の Run Configuration 'Paper Test Server' を実行"

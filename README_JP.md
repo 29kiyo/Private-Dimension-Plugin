@@ -5,7 +5,7 @@
 [English](README.md)
 
 ## このデータパックについて
-A derivative work of “Private_Dimension” by Chuzume.<br>
+A derivative work of "Private_Dimension" by Chuzume.<br>
 
 このデータパックは、Chuzume様が作成された「Private_Dimension」をプラグイン版に改変したものです。
 本データパックに関する著作権その他の権利はChuzume様に帰属します。
@@ -43,16 +43,20 @@ A derivative work of “Private_Dimension” by Chuzume.<br>
 | 🔙 帰還 | 次元内で再び使用すると元の座標に戻る |
 | 👥 エンティティ連行 | スニーク+使用で半径3ブロック内の友好的エンティティを連れていける |
 | 🏠 48×48 プロット | プレイヤーごとに専用の 48×48 空間を自動割り当て |
-| 🚫 プロット境界 | プロット外に出ると強制的に元の世界へ送還 |
 | ☠️ 死亡対応 | 次元内で死亡しても元の世界でリスポーン |
 | 📱 Geyser対応 | Java版・統合版（Geyser）両対応 |
 | 🧭 セーフスポーン探索 | 計算上のスポーン地点から周囲を自動探索し、安全な地面を見つけてスポーンさせる。床の高さが異なるカスタム構造物でも正しくスポーンできる |
+| 🚧 プロット内への押し戻し | プロットの外に出ると元の世界にではなく、自分のプロットのスポーン地点へ押し戻される（MOD版と同じ挙動）。押し戻し直後3秒間は落下ダメージが無効化される |
+| 🏷️ バイパスタグ | `pd_free`（設定変更可）のスコアボードタグを持つプレイヤーはOPと同様に境界チェックを回避できる |
 | 🗂️ カスタムNBT構造物 | `plugins/PrivateDimension/structures/` に自作の `.nbt` ファイルを置くと、デフォルトのプロット構造物を差し替えられる |
 | ⌨️ タブ補完 | `/pd` のサブコマンドと `/pd give` のプレイヤー名がゲーム内で補完される |
+| 🌐 多言語対応 | チャットメッセージ・コマンド出力・アイテムの名前や説明文はすべて `lang/en.yml` / `lang/ja.yml` から取得される。自作の言語ファイルを追加してフル翻訳することも可能 |
+| 📖 レシピ自動解放 | サーバー参加時に Dimension in a Bottle のレシピが自動的に発見済みになり、クラフト表に常に表示される |
+| ✨ エンチャント風の光沢 | アイテムに見た目だけのエンチャント光沢が付いている（実際のエンチャント効果は無し） |
 
 ## 必要環境
 
-- **Paper** 1.21.5+
+- **Paper**（Spigotも可） 1.21.5+ — MOD版と同じバージョン範囲（1.21.5〜26.1.2）での動作を目標としており、複数バージョンでの動作確認は継続中です
 - **Java** 21+
 - Geyser（統合版対応、任意）
 
@@ -84,6 +88,7 @@ A derivative work of “Private_Dimension” by Chuzume.<br>
 ## 設定 (config.yml)
 
 ```yaml
+language: "en"                     # 表示言語: "en" または "ja"（自作言語も可。下記「言語」参照）
 world-name: "private_dimension"   # 次元ワールド名
 plot-size: 48                      # プロットサイズ
 plot-spacing: 128                  # プロット間隔
@@ -92,10 +97,24 @@ plot-height: 47                    # 構造物の高さ（Yサイズ）。境界
 structure-file: "plot48x48.nbt"    # 使用する構造物ファイル名。詳細は下記「カスタム構造物」参照
 safe-spawn-search-radius: 8        # セーフスポーン探索の水平探索半径（ブロック）
 safe-spawn-search-height: 12       # セーフスポーン探索の上下探索範囲（ブロック）
+plot-bypass-tag: "pd_free"         # このタグを持つプレイヤーは境界チェックを回避できる
+debug-logging: false               # セーフスポーン探索・境界チェックの詳細ログをコンソールに出すか（トラブルシュート用）
 pull-entity-limit: 10              # 連行エンティティ最大数
 pull-entity-radius: 3.0            # 連行半径（ブロック）
-enable-border-enforcement: true    # 境界強制送還
+enable-border-enforcement: true    # プロット外に出たら自分のプロットのスポーン地点へ押し戻す
 ```
+
+`config.yml` の各設定項目には、`language` の値に関わらず常に日本語・英語両方のコメントが付いています（コメント自体はドキュメントであり、表示言語設定の影響は受けません）。
+
+### 言語
+
+チャットメッセージ・コマンド出力・アイテムの表示名/説明文はすべて、`config.yml` の `language` に対応する `plugins/PrivateDimension/lang/<language>.yml` から取得されます。
+
+- `en` と `ja` は同梱されており、初回起動時に自動的に展開されます。
+- 自作の言語を追加したい場合: `plugins/PrivateDimension/lang/en.yml` を新しいファイル（例: `fr.yml`）としてコピーし、翻訳した上で `config.yml` の `language` を `"fr"` に設定して `/pd reload`（またはサーバー再起動）してください。
+- 該当する言語ファイルが見つからない場合（同梱にも `lang` フォルダ内にも無い場合）は、警告を出して `en` にフォールバックします。
+- カスタム言語ファイルに一部キーが無くても、その部分だけ自動的に英語表示にフォールバックするので、翻訳が未完成でも問題なく動作します。
+- `plugins/PrivateDimension/structures/README.txt` は `language` 設定に関わらず、常に日本語・英語の両方が書き出されます（初回起動時のみ生成されるファイルなので、再生成したい場合は一度削除してください）。
 
 ### カスタム構造物（カスタムNBT）
 
@@ -107,20 +126,20 @@ enable-border-enforcement: true    # 境界強制送還
 4. 構造物のサイズ（幅・高さ）が 48×48×47 と異なる場合は `plot-size` / `plot-height` も合わせて変更する。
 5. `/pd reload` を実行するか、サーバーを再起動する。
 
-本プラグインは **セーフスポーン探索** を行うため（計算上のスポーン地点から周囲を探索し、頭上が空いた固い地面を探す）、床の高さがデフォルトと異なるカスタム構造物でも、基本的にスポーンYオフセットを手動調整する必要はありません。
+本プラグインは **セーフスポーン探索** を行うため（計算上のスポーン地点から周囲を探索し、頭上が空いた固い地面を探す）、床の高さがデフォルトと異なるカスタム構造物でも、基本的にスポーンYオフセットを手動調整する必要はありません。プロット境界を越えて押し戻される際も同じ探索処理を使って安全な地点に着地します。
 
 ## 開発 / IntelliJ IDEA でのローカルテスト
 
 IntelliJ から直接 Paper サーバーを起動してプラグインをテストできます。
 
 1. **初回セットアップ** — `run/` フォルダに Paper サーバーjarをダウンロード:
-   ```bash
+```bash
    bash scripts/setup-test-server.sh
-   ```
+```
 2. **ビルドしてテストサーバーへコピー:**
-   ```bash
+```bash
    bash scripts/build-and-copy.sh
-   ```
+```
    （コードを変更するたびに再実行し、サーバーを再起動/リロードしてください）
 3. **サーバー起動:**
    - IntelliJ から: **Run/Debug Configurations** を開き、`.run/` に含まれる **Paper Test Server**（IntelliJが自動検出）を選んで ▶ 実行。
@@ -129,6 +148,27 @@ IntelliJ から直接 Paper サーバーを起動してプラグインをテス�
 5. コード修正後はサーバーコンソールで `stop` → `scripts/build-and-copy.sh` を再実行 → 再起動、を繰り返します。
 
 `run/` フォルダ（サーバーjar・ワールドデータ・ログ）は `.gitignore` 済みで、いつでも削除・再生成して問題ありません。
+
+### 複数バージョンでの動作確認
+
+1.21.5〜26.1.2など、複数のMinecraftバージョンでの互換性を確認する場合:
+
+```bash
+bash scripts/setup-test-server.sh 1.21.8   # Paper 1.21.8 をダウンロード/切り替え
+bash scripts/reset-test-world.sh           # バージョン切り替え前に古いワールドデータを削除
+bash scripts/build-and-copy.sh
+bash scripts/build-and-run.sh
+```
+
+`setup-test-server.sh` は指定したバージョンが現在ダウンロード済みのものと違う場合、自動的に再ダウンロードします。`reset-test-world.sh` はワールドフォルダだけを削除します（`paper.jar` と `plugins/` は残る）。あるバージョンのワールドデータを別バージョンでそのまま読み込むと問題が起きることがあるためです。
+
+コード上、バージョンによる挙動差が出やすい箇所（各バージョンでテストする際に重点的に確認してほしいポイント）:
+
+* **構造物配置（Paper経路）** — `DimensionManager#placeStructurePaper` は Paper の `StructureManager`/`Structure` API（`StructureRotation`, `Mirror`, `structure.place(...)`）を使用しており、Paper APIのバージョンによってシグネチャが変わることがある。
+* **構造物配置（Spigot/手動NBT経路）** — `DimensionManager` の自作NBTリーダーは、バニラの構造物NBTフォーマット（`size`, `palette`, `blocks`）を前提にしている。将来Mojangがこのフォーマットを変更した場合、静かにパースが壊れる可能性がある。
+* **リフレクション経由のアイテムメタデータ設定** — `DimensionBottleItem#applyPaperMeta` は、幅広いPaperバージョンに対応するためコンパイル時の直接依存を避け、Adventure API（`Component`, `LegacyComponentSerializer`, `setEnchantmentGlintOverride`）にリフレクションでアクセスしている。メソッドシグネチャが変わった場合はlegacyな`setDisplayName`/`setLore`にフォールバックする作りだが、意図せずフォールバックしていないか確認する価値がある（コンソールに「Adventure API 適用失敗」という警告が出ていないかチェック）。
+* **`DamageTypeTags.IS_FIRE`** — アイテムの炎・溶岩耐性に使用。各バージョンで例外なく解決できるか確認。
+* **`plugin.yml` の `api-version`** — 現在 `'1.21'`。将来のMinecraftバージョンでBukkit APIに破壊的変更が入った場合は見直しが必要になる可能性がある。
 
 ## 開発について
 

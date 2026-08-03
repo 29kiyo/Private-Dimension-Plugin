@@ -12,18 +12,22 @@ import java.util.List;
 
 /**
  * config.yml の language 設定（デフォルト "en"）に応じて
- * lang/en.yml または lang/ja.yml を読み込み、文言を提供する。
+ * lang/<language>.yml を読み込み、文言を提供する。
  *
- * 対応していない language 値が指定された場合は "en" にフォールバックする。
- *
- * lang/*.yml は初回のみ plugins/PrivateDimension/lang/ に展開され、
- * ユーザーが直接編集してカスタマイズすることもできる
- * （config.yml の saveDefaultConfig と同じ考え方）。
- * ユーザーファイルに無いキーは jar 同梱のデフォルト値にフォールバックする。
+ * 対応言語は "en" / "ja" だけに限定されない。
+ * 1. jar に同梱されている言語（現状 en, ja）は自動的に
+ *    plugins/PrivateDimension/lang/ に展開される。
+ * 2. それ以外の言語コードでも、ユーザーが自分で
+ *    plugins/PrivateDimension/lang/<コード>.yml を作成し（lang/en.yml を
+ *    コピーして翻訳するのが手軽）、config.yml の language をそのコードに
+ *    設定すれば、そのファイルがそのまま読み込まれる。
+ * 3. 該当する言語ファイルが（同梱・ユーザー作成どちらにも）存在しない場合は
+ *    警告を出して "en" にフォールバックする。
+ * 4. どの言語でも、キーが見つからない場合は同梱の en.yml の値に
+ *    フォールバックする（カスタム言語ファイルの翻訳漏れ対策）。
  */
 public class LanguageManager {
 
-    private static final List<String> SUPPORTED = List.of("en", "ja");
     private static final String DEFAULT_LANGUAGE = "en";
 
     private final PrivateDimensionPlugin plugin;
@@ -41,28 +45,44 @@ public class LanguageManager {
      */
     public void reload() {
         String configured = plugin.getConfig().getString("language", DEFAULT_LANGUAGE);
-        if (configured == null || !SUPPORTED.contains(configured)) {
-            plugin.getLogger().warning("[PrivateDimension] language '" + configured
-                + "' is not supported (supported: " + SUPPORTED + "). Falling back to '"
-                + DEFAULT_LANGUAGE + "'.");
+        if (configured == null || configured.isBlank()) {
             configured = DEFAULT_LANGUAGE;
         }
-        currentLanguage = configured;
 
         File langDir = new File(plugin.getDataFolder(), "lang");
         if (!langDir.exists()) langDir.mkdirs();
 
-        File file = new File(langDir, currentLanguage + ".yml");
+        File file = new File(langDir, configured + ".yml");
+        boolean bundled = plugin.getResource("lang/" + configured + ".yml") != null;
+
         if (!file.exists()) {
-            plugin.saveResource("lang/" + currentLanguage + ".yml", false);
+            if (bundled) {
+                // en / ja など、jar に同梱されている言語 → 自動展開
+                plugin.saveResource("lang/" + configured + ".yml", false);
+            } else {
+                // 同梱もされておらず、ユーザーファイルも存在しないカスタム言語コード
+                plugin.getLogger().warning("[PrivateDimension] language '" + configured
+                    + "' 用のファイルが見つかりません"
+                    + "（jar同梱にも plugins/PrivateDimension/lang/ にもありません）。"
+                    + "'" + DEFAULT_LANGUAGE + "' にフォールバックします。"
+                    + " カスタム言語を追加するには、"
+                    + "lang/en.yml をコピーして plugins/PrivateDimension/lang/" + configured + ".yml"
+                    + " を作成し、翻訳してから language を再設定してください。");
+                configured = DEFAULT_LANGUAGE;
+                file = new File(langDir, configured + ".yml");
+                if (!file.exists()) {
+                    plugin.saveResource("lang/" + configured + ".yml", false);
+                }
+            }
         }
 
+        currentLanguage = configured;
         lang = YamlConfiguration.loadConfiguration(file);
 
-        // jar 同梱のデフォルトをフォールバックとして重ねる
-        // （ユーザーがファイルを編集していて、新バージョンで追加されたキーが
-        //   無い場合でも動くようにするため）
-        try (InputStream defStream = plugin.getResource("lang/" + currentLanguage + ".yml")) {
+        // どの言語であっても、同梱の en.yml を最終フォールバックとして重ねる
+        // （カスタム言語ファイルに一部キーが無くても英語で表示され、
+        //   生のキー名がそのまま表示されるのを防ぐ）
+        try (InputStream defStream = plugin.getResource("lang/" + DEFAULT_LANGUAGE + ".yml")) {
             if (defStream != null) {
                 YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
                     new InputStreamReader(defStream, StandardCharsets.UTF_8));
