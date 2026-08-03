@@ -91,8 +91,7 @@ public class PlayerMoveListener implements Listener {
             return;
         }
 
-        player.sendMessage(colorize(plugin.getConfig().getString(
-            "messages.border-forced", "&c[Private Dimension] プロットの外には出られません！")));
+        player.sendMessage(plugin.getLanguageManager().get("messages.border-forced"));
 
         // MOD版と同じ挙動: 元の世界には出さず、自分のプロットのスポーン地点（安全地点）へ押し戻す
         if (debugLogging) plugin.getLogger().info("[PrivateDimension] border-debug: pushBackToPlot 呼び出し plotId=" + plotId);
@@ -114,7 +113,4 @@ public class PlayerMoveListener implements Listener {
         }
     }
 
-    private String colorize(String msg) {
-        return msg == null ? "" : msg.replace("&", "§");
-    }
 }

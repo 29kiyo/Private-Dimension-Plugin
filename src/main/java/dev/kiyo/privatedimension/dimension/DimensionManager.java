@@ -45,17 +45,7 @@ public class DimensionManager {
         }
         File readme = new File(dir, "README.txt");
         if (!readme.exists()) {
-            String text =
-                "ここに config.yml の structure-file と同名の .nbt ファイルを置くと、\n" +
-                "同梱のデフォルト構造物（plot48x48.nbt）の代わりにそちらが使用されます。\n" +
-                "\n" +
-                "NBT構造物ファイルは Vanilla Structure Block（/setblock で SAVE モード）で\n" +
-                "書き出すことができます。\n" +
-                "\n" +
-                "サイズを変更した場合は config.yml の plot-size / plot-height も\n" +
-                "構造物のサイズに合わせて変更してください。\n" +
-                "スポーン地点は plot-floor-y からの固定オフセットです（MOD版と同じ方式）。\n" +
-                "床の高さが変わる場合は plot-floor-y も合わせて調整してください。\n";
+            String text = plugin.getLanguageManager().getRaw("structures-readme");
             try {
                 Files.writeString(readme.toPath(), text, java.nio.charset.StandardCharsets.UTF_8);
             } catch (IOException ignored) {}

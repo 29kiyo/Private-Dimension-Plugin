@@ -38,7 +38,7 @@ public class TeleportHandler {
         World privateDim = dim.getPrivateDimension();
         if (privateDim == null) {
             releaseNextTick(uid);
-            player.sendMessage("§c[PrivateDimension] 次元ワールドが準備できていません。");
+            player.sendMessage(plugin.getLanguageManager().get("messages.dimension-not-ready"));
             return;
         }
 

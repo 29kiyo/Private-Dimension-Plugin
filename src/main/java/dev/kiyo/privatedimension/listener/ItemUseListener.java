@@ -69,7 +69,7 @@ public class ItemUseListener implements Listener {
         event.setCancelled(true);
 
         if (!player.hasPermission("privatedimension.use")) {
-            player.sendMessage("§c[PrivateDimension] 使用権限がありません。");
+            player.sendMessage(plugin.getLanguageManager().get("messages.no-use-permission"));
             return;
         }
 
@@ -101,7 +101,7 @@ public class ItemUseListener implements Listener {
         if (hand == EquipmentSlot.OFF_HAND && action == Action.RIGHT_CLICK_BLOCK) return;
 
         if (!player.hasPermission("privatedimension.use")) {
-            player.sendMessage("§c[PrivateDimension] 使用権限がありません。");
+            player.sendMessage(plugin.getLanguageManager().get("messages.no-use-permission"));
             return;
         }
 

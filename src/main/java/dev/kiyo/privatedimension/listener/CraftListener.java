@@ -31,11 +31,6 @@ public class CraftListener implements Listener {
         player.playSound(player.getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 1f, 1f);
         player.playSound(player.getLocation(), Sound.ITEM_BOTTLE_FILL_DRAGONBREATH, 1f, 2f);
 
-        player.sendMessage(colorize(plugin.getConfig().getString("messages.craft-success",
-            "&a[Private Dimension] Dimension in a Bottle をクラフトしました！")));
-    }
-
-    private String colorize(String msg) {
-        return msg == null ? "" : msg.replace("&", "§");
+        player.sendMessage(plugin.getLanguageManager().get("messages.craft-success"));
     }
 }

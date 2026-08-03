@@ -1,6 +1,7 @@
 package dev.kiyo.privatedimension.item;
 
 import dev.kiyo.privatedimension.PrivateDimensionPlugin;
+import dev.kiyo.privatedimension.manager.LanguageManager;
 import dev.kiyo.privatedimension.util.PaperUtil;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -11,10 +12,13 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * "Dimension in a Bottle" アイテム
+ *
+ * 表示名・説明文（lore）は LanguageManager（config.yml の language 設定）から取得する。
  *
  * ── アイテム耐性 ──
  * setDamageResistant() は1つの Tag しか設定できない制約があるため、
@@ -60,60 +64,53 @@ public class DimensionBottleItem {
             plugin.getLogger().warning("damage_resistant(IS_FIRE) 設定失敗: " + e.getMessage());
         }
 
+        LanguageManager lang = plugin.getLanguageManager();
+
         if (PaperUtil.isPaper()) {
-            applyPaperMeta(meta);
+            applyPaperMeta(meta, lang);
         } else {
-            meta.setDisplayName("§bDimension in a Bottle");
-            meta.setLore(Arrays.asList(
-                "",
-                "§f使用すると、別世界の空間へと移動する。",
-                "§f その世界で再び使用すると、元の世界へと戻る。",
-                "",
-                "§7\"この小さな丸い瓶の中には、",
-                "§7 どういうわけか別の世界が詰まっている\""
-            ));
+            meta.setDisplayName(lang.get("item.name"));
+            meta.setLore(lang.getList("item.lore"));
         }
 
         item.setItemMeta(meta);
         return item;
     }
 
-    private void applyPaperMeta(PotionMeta meta) {
+    /**
+     * Paper環境向け: Adventure Component経由で表示名・loreを設定する。
+     * LanguageManager が返す「§」付きレガシー文字列を LegacyComponentSerializer で
+     * Componentへ変換し、italic装飾を明示的にOFFにする
+     * （legacy文字列で直接setLoreすると自動でイタリック体になってしまうのを防ぐため）。
+     * 失敗した場合は legacy な setDisplayName/setLore にフォールバックする。
+     */
+    private void applyPaperMeta(PotionMeta meta, LanguageManager lang) {
         try {
-            Class<?> componentClass  = Class.forName("net.kyori.adventure.text.Component");
-            Class<?> textColorClass  = Class.forName("net.kyori.adventure.text.format.NamedTextColor");
+            Class<?> componentClass = Class.forName("net.kyori.adventure.text.Component");
             Class<?> decorationClass = Class.forName("net.kyori.adventure.text.format.TextDecoration");
+            Class<?> legacySerializerClass =
+                Class.forName("net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer");
 
-            Object aqua   = textColorClass.getField("AQUA").get(null);
-            Object white  = textColorClass.getField("WHITE").get(null);
-            Object gray   = textColorClass.getField("GRAY").get(null);
+            Object legacySection = legacySerializerClass.getMethod("legacySection").invoke(null);
+            java.lang.reflect.Method deserializeMethod =
+                legacySerializerClass.getMethod("deserialize", String.class);
+
             Object italic = decorationClass.getField("ITALIC").get(null);
+            java.lang.reflect.Method decoMethod =
+                componentClass.getMethod("decoration", decorationClass, boolean.class);
 
-            java.lang.reflect.Method textMethod  = componentClass.getMethod("text", String.class);
-            java.lang.reflect.Method colorMethod = componentClass.getMethod("color",
-                Class.forName("net.kyori.adventure.text.format.TextColor"));
-            java.lang.reflect.Method decoMethod  = componentClass.getMethod("decoration",
-                decorationClass, boolean.class);
-            java.lang.reflect.Method emptyMethod = componentClass.getMethod("empty");
+            Object nameComponent = deserializeMethod.invoke(legacySection, lang.get("item.name"));
+            nameComponent = decoMethod.invoke(nameComponent, italic, false);
 
-            Object title = decoMethod.invoke(
-                colorMethod.invoke(textMethod.invoke(null, "Dimension in a Bottle"), aqua),
-                italic, false);
+            List<Object> loreComponents = new ArrayList<>();
+            for (String line : lang.getList("item.lore")) {
+                Object lineComponent = deserializeMethod.invoke(legacySection, line);
+                lineComponent = decoMethod.invoke(lineComponent, italic, false);
+                loreComponents.add(lineComponent);
+            }
 
-            Object l1 = emptyMethod.invoke(null);
-            Object l2 = decoMethod.invoke(colorMethod.invoke(
-                textMethod.invoke(null, "使用すると、別世界の空間へと移動する。"), white), italic, false);
-            Object l3 = decoMethod.invoke(colorMethod.invoke(
-                textMethod.invoke(null, "その世界で再び使用すると、元の世界へと戻る。"), white), italic, false);
-            Object l4 = emptyMethod.invoke(null);
-            Object l5 = decoMethod.invoke(colorMethod.invoke(
-                textMethod.invoke(null, "\"この小さな丸い瓶の中には、"), gray), italic, false);
-            Object l6 = decoMethod.invoke(colorMethod.invoke(
-                textMethod.invoke(null, " どういうわけか別の世界が詰まっている\""), gray), italic, false);
-
-            meta.getClass().getMethod("displayName", componentClass).invoke(meta, title);
-            meta.getClass().getMethod("lore", java.util.List.class)
-                .invoke(meta, Arrays.asList(l1, l2, l3, l4, l5, l6));
+            meta.getClass().getMethod("displayName", componentClass).invoke(meta, nameComponent);
+            meta.getClass().getMethod("lore", List.class).invoke(meta, loreComponents);
 
             try {
                 meta.getClass().getMethod("setEnchantmentGlintOverride", Boolean.class)
@@ -122,15 +119,8 @@ public class DimensionBottleItem {
 
         } catch (Exception e) {
             plugin.getLogger().warning("Adventure API 適用失敗、legacy フォールバック: " + e.getMessage());
-            meta.setDisplayName("§bDimension in a Bottle");
-            meta.setLore(Arrays.asList(
-                "",
-                "§f使用すると、別世界の空間へと移動する。",
-                "§f その世界で再び使用すると、元の世界へと戻る。",
-                "",
-                "§7\"この小さな丸い瓶の中には、",
-                "§7 どういうわけか別の世界が詰まっている\""
-            ));
+            meta.setDisplayName(lang.get("item.name"));
+            meta.setLore(lang.getList("item.lore"));
         }
     }
 

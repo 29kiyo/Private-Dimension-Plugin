@@ -1,0 +1,90 @@
+# PrivateDimension - 日本語言語ファイル
+# 色コードは '&' を使用（自動的に '§' に変換されます）
+# %player% のようなプレースホルダーは該当箇所で自動置換されます
+
+console:
+  enabled: "PrivateDimension が有効化されました！"
+  dimension-world: "プライベート次元ワールド: %world%"
+  disabled: "PrivateDimension が無効化されました。"
+
+item:
+  name: "&bDimension in a Bottle"
+  lore:
+    - ""
+    - "&f使用すると、別世界の空間へと移動する。"
+    - "&f その世界で再び使用すると、元の世界へと戻る。"
+    - ""
+    - "&7\"この小さな丸い瓶の中には、"
+    - "&7 どういうわけか別の世界が詰まっている\""
+
+messages:
+  install: "&a[Private Dimension] プラグインが有効になりました！"
+  no-permission: "&cこの操作を行う権限がありません。"
+  no-use-permission: "&c[PrivateDimension] 使用権限がありません。"
+  dimension-not-ready: "&c[PrivateDimension] 次元ワールドが準備できていません。"
+  give-item: "&a[Private Dimension] アイテムを付与しました。"
+  dimension-enter: "&b別世界の空間へ移動しました。"
+  dimension-return: "&b元の世界へ戻りました。"
+  border-forced: "&c[Private Dimension] プロットの外には出られません！"
+  craft-success: "&a[Private Dimension] Dimension in a Bottle をクラフトしました！"
+
+command:
+  no-permission: "&c権限がありません。"
+  help:
+    header: "&b[PrivateDimension] コマンド一覧:"
+    give: "&f/pd give [player] &7- アイテムを付与"
+    reload: "&f/pd reload &7- 設定をリロード"
+    info: "&f/pd info &7- プロット情報を表示"
+    debug: "&f/pd debug &7- プロット境界チェックの状態を表示"
+  give:
+    player-not-found: "&cプレイヤーが見つかりません: %player%"
+    need-player-name: "&cプレイヤー名を指定してください。"
+    success-sender: "&a[PrivateDimension] %player% にアイテムを付与しました。"
+  reload:
+    success: "&a[PrivateDimension] 設定をリロードしました。"
+  info:
+    players-only: "&cプレイヤーのみ実行可能です。"
+    plot-id: "&b[PrivateDimension] あなたのプロットID: &f%id%"
+    last-position: "&b次元内最終座標: &f%x%, %y%, %z%"
+    no-plot-line1: "&b[PrivateDimension] まだプロットを持っていません。"
+    no-plot-line2: "&bDimension in a Bottle を使うと割り当てられます。"
+  debug:
+    header: "&e[PrivateDimension] デバッグ情報:"
+    border-enforcement: "&7enable-border-enforcement: &f%value%"
+    bypass-tag-config: "&7plot-bypass-tag: &f%value%"
+    plot-values: "&7plot-size=%size% plot-spacing=%spacing% plot-floor-y=%floorY% plot-height=%height%"
+    in-dimension: "&7次元内にいるか: &f%value%"
+    op-bypass: "&7OPによる境界バイパス: &f%value%"
+    tag-bypass: "&7タグ(%tag%)による境界バイパス: &f%value%"
+    plot-status: "&7自分のplotId: &f%id% &7自分のプロット内か: &f%inside%"
+    no-plot: "&7まだプロットを持っていません。"
+    console-note: "&7(コンソール実行のためプレイヤー固有の情報はありません)"
+
+# plugins/PrivateDimension/structures/README.txt に書き出される平文（色コードなし）
+# language 設定に関わらず、このファイルは常に日本語+英語の併記になる
+structures-readme: |
+  [English]
+  Put a .nbt file here with the same name as structure-file in config.yml,
+  and it will be used instead of the bundled default structure (plot48x48.nbt).
+
+  You can create an NBT structure file using a Vanilla Structure Block
+  (set it to SAVE mode).
+
+  If you change the size, also update plot-size / plot-height in config.yml
+  to match your structure's dimensions.
+  The spawn point is found automatically via a safe-spawn search, so it
+  generally adapts even if the floor height changes.
+
+  ------------------------------------------------------------
+
+  [日本語]
+  ここに config.yml の structure-file と同名の .nbt ファイルを置くと、
+  同梱のデフォルト構造物（plot48x48.nbt）の代わりにそちらが使用されます。
+
+  NBT構造物ファイルは Vanilla Structure Block（/setblock で SAVE モード）で
+  書き出すことができます。
+
+  サイズを変更した場合は config.yml の plot-size / plot-height も
+  構造物のサイズに合わせて変更してください。
+  スポーン地点は自動探索（セーフスポーン探索）されるため、
+  床の高さが変わっても基本的に自動で対応します。
