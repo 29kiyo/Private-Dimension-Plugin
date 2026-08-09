@@ -25,12 +25,41 @@ public class DimensionManager {
     private World privateDimension;
     private final String worldName;
 
+    /** 最後に配置した構造物のサイズ（X, Y, Z）。カスタムNBT対応のためロードの度に更新される */
+    private volatile int[] lastStructureSize = null;
+
     public DimensionManager(PrivateDimensionPlugin plugin) {
         this.plugin = plugin;
         this.worldName = plugin.getConfig().getString("world-name", "private_dimension");
     }
 
+    /**
+     * カスタムNBTを置くためのフォルダを用意する。
+     * plugins/PrivateDimension/structures/ に同名ファイルを置くと
+     * 同梱デフォルト（plot48x48.nbt）の代わりに読み込まれる。
+     */
+    public void ensureStructuresFolder() {
+        File dir = new File(plugin.getDataFolder(), "structures");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        File readme = new File(dir, "README.txt");
+        if (!readme.exists()) {
+            String text = plugin.getLanguageManager().getRaw("structures-readme");
+            try {
+                Files.writeString(readme.toPath(), text, java.nio.charset.StandardCharsets.UTF_8);
+            } catch (IOException ignored) {}
+        }
+    }
+
+    /** 最後に読み込んだ構造物のサイズ。未ロード時は null */
+    public int[] getLastStructureSize() {
+        return lastStructureSize;
+    }
+
     public void initDimension() {
+        ensureStructuresFolder();
+
         privateDimension = Bukkit.getWorld(worldName);
         if (privateDimension != null) {
             plugin.getLogger().info("既存のプライベート次元ワールドを読み込みました: " + worldName);
@@ -88,16 +117,40 @@ public class DimensionManager {
         }
     }
 
-    /** NBT バイト列を取得（キャッシュファイルに書き出し、MD5で更新検知） */
+    /** config.yml の structure-file で指定されたファイル名を取得 */
+    private String getStructureFileName() {
+        return plugin.getConfig().getString("structure-file", "plot48x48.nbt");
+    }
+
+    /**
+     * NBT バイト列を取得する。
+     * 1. plugins/PrivateDimension/structures/<structure-file> があればそれを優先（カスタムNBT）
+     * 2. なければ jar 同梱リソース（デフォルトは plot48x48.nbt）を使用
+     */
     private byte[] extractNbt() {
-        try (InputStream in = plugin.getResource("plot48x48.nbt")) {
+        String fileName = getStructureFileName();
+
+        File customFile = new File(new File(plugin.getDataFolder(), "structures"), fileName);
+        if (customFile.exists() && customFile.isFile()) {
+            try {
+                byte[] bytes = Files.readAllBytes(customFile.toPath());
+                plugin.getLogger().info("カスタム構造物を使用します: structures/" + fileName);
+                return bytes;
+            } catch (IOException e) {
+                plugin.getLogger().severe("カスタム構造物の読み込みに失敗: " + e.getMessage()
+                    + " → 同梱デフォルトにフォールバックします。");
+            }
+        }
+
+        try (InputStream in = plugin.getResource(fileName)) {
             if (in == null) {
-                plugin.getLogger().severe("plot48x48.nbt リソースが見つかりません！");
+                plugin.getLogger().severe(fileName + " リソースが見つかりません！"
+                    + " structures/ フォルダにも同名ファイルがありません。");
                 return null;
             }
             return in.readAllBytes();
         } catch (IOException e) {
-            plugin.getLogger().severe("plot48x48.nbt の読み込みに失敗: " + e.getMessage());
+            plugin.getLogger().severe(fileName + " の読み込みに失敗: " + e.getMessage());
             return null;
         }
     }
@@ -106,14 +159,15 @@ public class DimensionManager {
 
     private void placeStructurePaper(Location origin, byte[] nbtBytes) {
         try {
+            String fileName = getStructureFileName();
             File structureDir = new File(plugin.getServer().getWorldContainer(),
                 worldName + "/generated/private_dimension/structures");
             structureDir.mkdirs();
-            File structureFile = new File(structureDir, "plot48x48.nbt");
+            File structureFile = new File(structureDir, fileName);
 
             if (!structureFile.exists() || !md5Matches(structureFile, nbtBytes)) {
                 Files.write(structureFile.toPath(), nbtBytes);
-                plugin.getLogger().info("plot48x48.nbt を展開しました。");
+                plugin.getLogger().info(fileName + " を展開しました。");
             }
 
             org.bukkit.structure.StructureManager sm = Bukkit.getServer().getStructureManager();
@@ -121,6 +175,10 @@ public class DimensionManager {
             try (InputStream is = new FileInputStream(structureFile)) {
                 structure = sm.loadStructure(is);
             }
+
+            org.bukkit.util.BlockVector size = structure.getSize();
+            lastStructureSize = new int[] { size.getBlockX(), size.getBlockY(), size.getBlockZ() };
+
             structure.place(origin, true,
                 org.bukkit.block.structure.StructureRotation.NONE,
                 org.bukkit.block.structure.Mirror.NONE,
@@ -153,10 +211,19 @@ public class DimensionManager {
 
             NbtList paletteList = (NbtList) rootData.get("palette");
             NbtList blockList   = (NbtList) rootData.get("blocks");
+            NbtList sizeList    = (NbtList) rootData.get("size");
 
             if (paletteList == null || blockList == null) {
                 plugin.getLogger().severe("NBT の palette/blocks が読めません");
                 return;
+            }
+
+            if (sizeList != null && sizeList.size() == 3) {
+                lastStructureSize = new int[] {
+                    ((Number) sizeList.get(0)).intValue(),
+                    ((Number) sizeList.get(1)).intValue(),
+                    ((Number) sizeList.get(2)).intValue()
+                };
             }
 
             // パレット → BlockData のキャッシュ

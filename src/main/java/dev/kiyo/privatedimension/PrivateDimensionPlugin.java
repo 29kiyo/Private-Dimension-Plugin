@@ -8,6 +8,8 @@ import dev.kiyo.privatedimension.listener.ItemEntityListener;
 import dev.kiyo.privatedimension.listener.ItemUseListener;
 import dev.kiyo.privatedimension.listener.PlayerDeathListener;
 import dev.kiyo.privatedimension.listener.PlayerMoveListener;
+import dev.kiyo.privatedimension.listener.RecipeUnlockListener;
+import dev.kiyo.privatedimension.manager.LanguageManager;
 import dev.kiyo.privatedimension.manager.PlayerDataManager;
 import dev.kiyo.privatedimension.manager.PlotManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -22,6 +24,7 @@ public class PrivateDimensionPlugin extends JavaPlugin {
     private PlotManager plotManager;
     private PlayerDataManager playerDataManager;
     private DimensionBottleItem dimensionBottleItem;
+    private LanguageManager languageManager;
 
     @Override
     public void onEnable() {
@@ -29,6 +32,7 @@ public class PrivateDimensionPlugin extends JavaPlugin {
 
         saveDefaultConfig();
 
+        languageManager   = new LanguageManager(this);
         playerDataManager = new PlayerDataManager(this);
         dimensionManager  = new DimensionManager(this);
         plotManager       = new PlotManager(this);
@@ -44,18 +48,31 @@ public class PrivateDimensionPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(playerMoveListener, this);
         getServer().getPluginManager().registerEvents(new CraftListener(this), this);
         getServer().getPluginManager().registerEvents(new ItemEntityListener(dimensionBottleItem), this);
+        getServer().getPluginManager().registerEvents(new RecipeUnlockListener(this), this);
 
         // コマンド登録
-        Objects.requireNonNull(getCommand("pd")).setExecutor(new PDCommand(this));
-        Objects.requireNonNull(getCommand("privatedim")).setExecutor(new PDCommand(this));
+        PDCommand pdCommand = new PDCommand(this);
+        dev.kiyo.privatedimension.command.PDTabCompleter pdTabCompleter =
+            new dev.kiyo.privatedimension.command.PDTabCompleter(this);
+
+        Objects.requireNonNull(getCommand("pd")).setExecutor(pdCommand);
+        Objects.requireNonNull(getCommand("pd")).setTabCompleter(pdTabCompleter);
+        Objects.requireNonNull(getCommand("privatedim")).setExecutor(pdCommand);
+        Objects.requireNonNull(getCommand("privatedim")).setTabCompleter(pdTabCompleter);
 
         // ワールド初期化（1tick後）
         new BukkitRunnable() {
             @Override
             public void run() {
                 dimensionManager.initDimension();
-                getLogger().info("PrivateDimension が有効化されました！");
-                getLogger().info("プライベート次元ワールド: " + getConfig().getString("world-name"));
+                getLogger().info(languageManager.getRaw("console.enabled"));
+                getLogger().info(languageManager.getRaw("console.dimension-world")
+                    .replace("%world%", String.valueOf(getConfig().getString("world-name"))));
+
+                // 既にオンラインのプレイヤーにもレシピを付与（/reload 等で再有効化された場合の対応）
+                for (org.bukkit.entity.Player p : getServer().getOnlinePlayers()) {
+                    p.discoverRecipes(java.util.Collections.singletonList(dimensionBottleItem.getRecipeKey()));
+                }
             }
         }.runTaskLater(this, 1L);
     }
@@ -66,7 +83,11 @@ public class PrivateDimensionPlugin extends JavaPlugin {
             playerDataManager.saveAll();
         }
         // log フィールドではなく getLogger() を直接使用（onEnable 前に呼ばれても NPE しない）
-        getLogger().info("PrivateDimension が無効化されました。");
+        if (languageManager != null) {
+            getLogger().info(languageManager.getRaw("console.disabled"));
+        } else {
+            getLogger().info("PrivateDimension disabled.");
+        }
     }
 
     public static PrivateDimensionPlugin getInstance() { return instance; }
@@ -74,4 +95,5 @@ public class PrivateDimensionPlugin extends JavaPlugin {
     public PlotManager getPlotManager()                { return plotManager; }
     public PlayerDataManager getPlayerDataManager()    { return playerDataManager; }
     public DimensionBottleItem getDimensionBottleItem(){ return dimensionBottleItem; }
+    public LanguageManager getLanguageManager()        { return languageManager; }
 }

@@ -21,6 +21,9 @@ public class TeleportHandler {
     // teleport() 完了後も1tick維持することで、同tick内の PlayerMoveEvent の誤介入を防ぐ
     private final Set<UUID> teleporting = Collections.synchronizedSet(new HashSet<>());
 
+    // 境界外プッシュバック直後の落下ダメージ無効化（UUID → 無効化終了時刻ミリ秒）
+    private final Map<UUID, Long> fallImmuneUntil = new java.util.concurrent.ConcurrentHashMap<>();
+
     public TeleportHandler(PrivateDimensionPlugin plugin) {
         this.plugin = plugin;
         this.dim = plugin.getDimensionManager();
@@ -35,7 +38,7 @@ public class TeleportHandler {
         World privateDim = dim.getPrivateDimension();
         if (privateDim == null) {
             releaseNextTick(uid);
-            player.sendMessage("§c[PrivateDimension] 次元ワールドが準備できていません。");
+            player.sendMessage(plugin.getLanguageManager().get("messages.dimension-not-ready"));
             return;
         }
 
@@ -75,12 +78,17 @@ public class TeleportHandler {
         World pdWorld = dim.getPrivateDimension();
 
         double[] saved = pdm.getPlotPos(uid);
-        Location dest = (saved != null)
+        Location guess = (saved != null)
             ? new Location(pdWorld, saved[0], saved[1], saved[2])
             : plotManager.getPlotSpawn(pdm.getPlotId(uid), pdWorld);
 
+        // 保存座標は plot-size / structure-file の設定変更後は無効になっている場合があるため、
+        // 他の入場経路と同様に必ず findSafeSpawn を通してから採用する
+        Location dest = plotManager.findSafeSpawn(guess);
+
         try {
             player.teleport(dest);
+            pdm.setPlotPos(uid, dest.getX(), dest.getY(), dest.getZ());
             pullEntities(dest, bringEntities);
             playVfx(dest);
         } catch (Exception e) {
@@ -111,13 +119,17 @@ public class TeleportHandler {
                     structOrigin.getChunk().load(true);
                     dim.placeStructure(structOrigin);
 
+                    // カスタムNBT構造物は床の高さ・サイズが plot48x48.nbt と異なる場合があるため、
+                    // 計算上のスポーン地点を起点に実ブロックを確認して安全な地点へ補正する
+                    Location safeSpawn = plotManager.findSafeSpawn(spawnLoc);
+
                     player.addPotionEffect(new org.bukkit.potion.PotionEffect(
                         org.bukkit.potion.PotionEffectType.SLOW_FALLING, 20, 0, true, false));
 
-                    player.teleport(spawnLoc);
-                    pdm.setPlotPos(uid, spawnLoc.getX(), spawnLoc.getY(), spawnLoc.getZ());
-                    pullEntities(spawnLoc, bringEntities);
-                    playVfx(spawnLoc);
+                    player.teleport(safeSpawn);
+                    pdm.setPlotPos(uid, safeSpawn.getX(), safeSpawn.getY(), safeSpawn.getZ());
+                    pullEntities(safeSpawn, bringEntities);
+                    playVfx(safeSpawn);
                 } catch (Exception e) {
                     plugin.getLogger().severe("claimPlot で例外: " + e.getMessage());
                 } finally {
@@ -125,6 +137,47 @@ public class TeleportHandler {
                 }
             }
         }.runTask(plugin);
+    }
+
+    /**
+     * プロット境界の外に出たプレイヤーを、自分のプロットのスポーン地点へ押し戻す。
+     * MOD版の pushBackToPlot と同じ挙動: 元の世界には出さず、次元内に留める。
+     *
+     * 境界を越えて落下している最中に検知 → 見つかった安全地点へ着地させた瞬間、
+     * それまでの落下速度によって着地ダメージを受けてしまうことがあるため、
+     * 3秒間だけ落下ダメージを無効化する。
+     */
+    public void pushBackToPlot(Player player, Location dest) {
+        UUID uid = player.getUniqueId();
+        teleporting.add(uid);
+        try {
+            playVfx(player.getLocation());
+            player.teleport(dest);
+            player.setFallDistance(0f);
+            grantFallImmunity(player, 3000);
+            pdm.setPlotPos(uid, dest.getX(), dest.getY(), dest.getZ());
+            playVfx(dest);
+        } catch (Exception e) {
+            plugin.getLogger().severe("pushBackToPlot で例外: " + e.getMessage());
+        } finally {
+            releaseNextTick(uid);
+        }
+    }
+
+    /** durationMs ミリ秒の間、落下ダメージを無効化する */
+    public void grantFallImmunity(Player player, long durationMs) {
+        fallImmuneUntil.put(player.getUniqueId(), System.currentTimeMillis() + durationMs);
+    }
+
+    /** 現在、落下ダメージ無効化の期間中かどうか */
+    public boolean isFallImmune(UUID uid) {
+        Long until = fallImmuneUntil.get(uid);
+        if (until == null) return false;
+        if (System.currentTimeMillis() > until) {
+            fallImmuneUntil.remove(uid);
+            return false;
+        }
+        return true;
     }
 
     // ──────────────────────────────────────────────

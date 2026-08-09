@@ -1,32 +1,74 @@
 # PrivateDimension Configuration
 
+# 表示言語 / Display language: "en" or "ja" (default: "en")
+# lang/en.yml と lang/ja.yml で文言をカスタマイズできる
+# Customize wording in lang/en.yml or lang/ja.yml
+language: "en"
+
 # 次元ワールドの名前
+# Name of the private dimension world
 world-name: "private_dimension"
 
 # プロットサイズ (48x48)
+# Plot size (48x48)
 plot-size: 48
 
 # プロットの間隔 (Z軸方向)
+# Distance between plots (along the Z axis)
 plot-spacing: 128
 
 # プロット床のY座標
+# Y coordinate of the plot floor
 plot-floor-y: 64
 
+# プロットの高さ（NBT構造物のY方向サイズ。境界判定・セーフスポーン探索に使用）
+# デフォルトの plot48x48.nbt は 47。カスタム構造物を使う場合はその高さに合わせること。
+# Plot height (the Y-axis size of the NBT structure; used for boundary checks
+# and the safe-spawn search). The bundled plot48x48.nbt is 47 tall.
+# If you use a custom structure, match this to its height.
+plot-height: 47
+
+# 使用する構造物ファイル名
+# plugins/PrivateDimension/structures/ フォルダ内に同名のファイルを置くと、
+# 同梱のデフォルト構造物の代わりにそちらが使用される（カスタムNBT対応）。
+# Structure filename to use.
+# Place a file with the same name in plugins/PrivateDimension/structures/
+# to use it instead of the bundled default structure (custom NBT support).
+structure-file: "plot48x48.nbt"
+
+# セーフスポーン探索: 水平方向の探索半径（ブロック）
+# Safe-spawn search: horizontal search radius (blocks)
+safe-spawn-search-radius: 8
+
+# セーフスポーン探索: 上下方向の探索範囲（ブロック、中心から上下にこの分探索）
+# Safe-spawn search: vertical search range (blocks, above and below center)
+safe-spawn-search-height: 12
+
+# このタグを持つプレイヤーはプロット境界チェックを回避できる（MOD版の plotBypassTag と同じ）
+# 付与例: /tag <player> add pd_free
+# Players with this scoreboard tag skip plot boundary enforcement
+# (same as the mod version's plotBypassTag). Grant it with:
+# /tag <player> add pd_free
+plot-bypass-tag: "pd_free"
+
+# セーフスポーン探索や境界チェックの詳細ログをコンソールに出すか（トラブルシュート用）
+# 通常は false のままでOK。見つからなかった場合の警告は常に表示される。
+# Whether to print detailed console logs for the safe-spawn search and
+# boundary checks (for troubleshooting). Usually fine left as false;
+# the "not found" warning is always shown regardless of this setting.
+debug-logging: false
+
 # スニーク時に引き連れる最大エンティティ数
+# Maximum number of entities that can be brought along while sneaking
 pull-entity-limit: 10
 
 # 引き連れる範囲 (ブロック)
+# Radius (in blocks) used to detect entities to bring along
 pull-entity-radius: 3.0
 
-# プロット外に出たら強制送還するか
+# プロット外に出たら自分のプロットのスポーン地点へ強制的に押し戻すか
+# (元の世界には送還しない。MOD版と同じ挙動)
+# Whether to push players back to their own plot's spawn point when they
+# leave its boundary (they are NOT sent back to the main world;
+# this matches the mod version's behavior).
 enable-border-enforcement: true
-
-# メッセージ設定
-messages:
-  install: "&a[Private Dimension] プラグインが有効になりました！"
-  no-permission: "&cこの操作を行う権限がありません。"
-  give-item: "&a[Private Dimension] アイテムを付与しました。"
-  dimension-enter: "&b別世界の空間へ移動しました。"
-  dimension-return: "&b元の世界へ戻りました。"
-  border-forced: "&c[Private Dimension] プロットの外には出られません！"
-  craft-success: "&a[Private Dimension] Dimension in a Bottle をクラフトしました！"

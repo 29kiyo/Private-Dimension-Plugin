@@ -1,0 +1,90 @@
+# PrivateDimension - English language file
+# Color codes use '&' (converted to '§' automatically).
+# Placeholders like %player% are replaced automatically where noted.
+
+console:
+  enabled: "PrivateDimension has been enabled!"
+  dimension-world: "Private dimension world: %world%"
+  disabled: "PrivateDimension has been disabled."
+
+item:
+  name: "&bDimension in a Bottle"
+  lore:
+    - ""
+    - "&fUse it to step into a private pocket dimension."
+    - "&f Use it again inside to return to where you came from."
+    - ""
+    - "&7\"Somehow, this small round bottle"
+    - "&7 contains an entire world of its own.\""
+
+messages:
+  install: "&a[Private Dimension] Plugin enabled!"
+  no-permission: "&cYou don't have permission to do that."
+  no-use-permission: "&c[PrivateDimension] You don't have permission to use this."
+  dimension-not-ready: "&c[PrivateDimension] The dimension world isn't ready yet."
+  give-item: "&a[Private Dimension] You received an item."
+  dimension-enter: "&bYou stepped into another world."
+  dimension-return: "&bYou returned to the original world."
+  border-forced: "&c[Private Dimension] You can't leave your plot!"
+  craft-success: "&a[Private Dimension] Crafted a Dimension in a Bottle!"
+
+command:
+  no-permission: "&cYou don't have permission."
+  help:
+    header: "&b[PrivateDimension] Commands:"
+    give: "&f/pd give [player] &7- Give the item"
+    reload: "&f/pd reload &7- Reload the configuration"
+    info: "&f/pd info &7- Show your plot info"
+    debug: "&f/pd debug &7- Show plot boundary check status"
+  give:
+    player-not-found: "&cPlayer not found: %player%"
+    need-player-name: "&cPlease specify a player name."
+    success-sender: "&a[PrivateDimension] Gave an item to %player%."
+  reload:
+    success: "&a[PrivateDimension] Configuration reloaded."
+  info:
+    players-only: "&cOnly players can run this."
+    plot-id: "&b[PrivateDimension] Your plot ID: &f%id%"
+    last-position: "&bLast known position in the dimension: &f%x%, %y%, %z%"
+    no-plot-line1: "&b[PrivateDimension] You don't have a plot yet."
+    no-plot-line2: "&bUse a Dimension in a Bottle to get one assigned."
+  debug:
+    header: "&e[PrivateDimension] Debug info:"
+    border-enforcement: "&7enable-border-enforcement: &f%value%"
+    bypass-tag-config: "&7plot-bypass-tag: &f%value%"
+    plot-values: "&7plot-size=%size% plot-spacing=%spacing% plot-floor-y=%floorY% plot-height=%height%"
+    in-dimension: "&7In the dimension: &f%value%"
+    op-bypass: "&7OP boundary bypass: &f%value%"
+    tag-bypass: "&7Tag(%tag%) boundary bypass: &f%value%"
+    plot-status: "&7Your plotId: &f%id% &7Inside your plot: &f%inside%"
+    no-plot: "&7You don't have a plot yet."
+    console-note: "&7(Running from console, no player-specific info)"
+
+# Plain text (no color codes) written to plugins/PrivateDimension/structures/README.txt
+# This file is always bilingual (JP/EN) regardless of the "language" setting.
+structures-readme: |
+  [English]
+  Put a .nbt file here with the same name as structure-file in config.yml,
+  and it will be used instead of the bundled default structure (plot48x48.nbt).
+
+  You can create an NBT structure file using a Vanilla Structure Block
+  (set it to SAVE mode).
+
+  If you change the size, also update plot-size / plot-height in config.yml
+  to match your structure's dimensions.
+  The spawn point is found automatically via a safe-spawn search, so it
+  generally adapts even if the floor height changes.
+
+  ------------------------------------------------------------
+
+  [日本語]
+  ここに config.yml の structure-file と同名の .nbt ファイルを置くと、
+  同梱のデフォルト構造物（plot48x48.nbt）の代わりにそちらが使用されます。
+
+  NBT構造物ファイルは Vanilla Structure Block（/setblock で SAVE モード）で
+  書き出すことができます。
+
+  サイズを変更した場合は config.yml の plot-size / plot-height も
+  構造物のサイズに合わせて変更してください。
+  スポーン地点は自動探索（セーフスポーン探索）されるため、
+  床の高さが変わっても基本的に自動で対応します。

@@ -9,12 +9,10 @@ authors: [29kiyo]
 commands:
   pd:
     description: PrivateDimension管理コマンド
-    usage: /pd <give|reload|info>
-    permission: privatedimension.admin
+    usage: /pd <give|reload|info|debug>
   privatedim:
     description: PrivateDimension管理コマンド(alias)
-    usage: /privatedim <give|reload|info>
-    permission: privatedimension.admin
+    usage: /privatedim <give|reload|info|debug>
 
 permissions:
   privatedimension.admin:
