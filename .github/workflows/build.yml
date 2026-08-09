@@ -53,9 +53,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build with Maven
-        run: mvn clean package -B --no-transfer-progress
-
       - name: Determine and validate version
         id: version
         run: |
@@ -81,10 +78,23 @@ jobs:
           echo "bare=${RAW#v}" >> $GITHUB_OUTPUT
           echo "✅ バージョン: $RAW"
 
+      - name: Set project version in pom.xml
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.version.outputs.bare }} -DgenerateBackupPoms=false
+
+      - name: Build with Maven
+        run: mvn clean package -B --no-transfer-progress
+
       - name: Rename jar with version
         run: |
           JAR=$(ls target/PrivateDimension-*.jar | head -1)
-          mv "$JAR" "target/PrivateDimension-${{ steps.version.outputs.bare }}.jar"
+          DEST="target/PrivateDimension-${{ steps.version.outputs.bare }}.jar"
+          
+          if [ "$JAR" != "$DEST" ]; then
+            mv "$JAR" "$DEST"
+          else
+            echo "既に正しいファイル名のため、リネームをスキップします。"
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
