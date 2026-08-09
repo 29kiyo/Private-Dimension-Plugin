@@ -84,6 +84,21 @@ All subcommands and player names (for `/pd give`) support tab completion.
 | `privatedimension.admin` | op      | Administrative commands |
 | `privatedimension.debug` | op      | Ignore plot boundaries  |
 
+## Plot Boundary Bypass
+
+By default, leaving your plot pushes you back inside it. There are two ways to bypass this:
+
+- **Operators** (permission level 2+) always bypass the boundary check.
+- **Tagged players** can bypass it too. Grant the bypass tag (default: `pd_free`, configurable via `plotBypassTag` in the config) using the vanilla `/tag` command:
+
+  ```
+  /tag <player> add pd_free
+  ```
+
+  Remove it with `/tag <player> remove pd_free`.
+
+  Example: `/tag Steve add pd_free` lets the player Steve freely leave any plot.
+
 ## Configuration (config.yml)
 
 ```yaml
