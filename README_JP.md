@@ -85,6 +85,22 @@ A derivative work of "Private_Dimension" by Chuzume.<br>
 | `privatedimension.admin` | op | 管理コマンド |
 | `privatedimension.debug` | op | プロット境界無視 |
 
+## プロット境界のバイパス
+
+デフォルトでは、プロット外に出ると自分のプロット内へ押し戻されます。以下の2通りでバイパスできます。
+
+- **OP**（権限レベル2以上）は常に境界チェックの対象外です。
+- **タグ付きプレイヤー**もバイパス可能です。バニラの`/tag`コマンドでバイパス用タグ（デフォルト: `pd_free`、設定ファイルの`plotBypassTag`で変更可）を付与してください。
+
+  ```
+  /tag <プレイヤー名> add pd_free
+  ```
+
+  外す場合は `/tag <プレイヤー名> remove pd_free` です。
+
+  例: `/tag Steve add pd_free` とすると、Steveはどのプロットでも境界を気にせず出入りできるようになります。
+
+
 ## 設定 (config.yml)
 
 ```yaml
